@@ -49,6 +49,7 @@ async function handleDelete(row) {
 }
 
 function onPageChange(p) { page.value = p; load() }
+function onSizeChange(s) { pageSize.value = s; page.value = 1; load() }
 
 function formatDate(d) { return d ? new Date(d).toLocaleDateString('zh-CN') : '-' }
 function statusTag(s) {
@@ -116,9 +117,11 @@ onMounted(() => { load() })
 
     <div class="pagination-wrap">
       <el-pagination
-        background layout="total, prev, pager, next"
+        background layout="total, sizes, prev, pager, next"
         :total="total" :page-size="pageSize" :current-page="page"
+        :page-sizes="[10, 20, 50]"
         @current-change="onPageChange"
+        @size-change="onSizeChange"
       />
     </div>
 

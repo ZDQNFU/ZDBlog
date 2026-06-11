@@ -112,7 +112,7 @@ class ChatStreamView(APIView):
             except Exception as e:
                 yield f'data: {json.dumps({"error": str(e)})}\n\n'
             finally:
-                ai_content = ''.join(full_response)
+                ai_content = ''.join(full_response).rstrip()
                 if ai_content.strip():
                     ChatMessage.objects.create(
                         user=request.user,
@@ -158,6 +158,8 @@ class ChatUserListView(APIView):
 
     def get(self, request):
         search = request.query_params.get('search', '').strip()
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 20))
 
         qs = ChatMessage.objects.values('user_id').annotate(
             message_count=Count('id'),
@@ -179,7 +181,12 @@ class ChatUserListView(APIView):
             })
 
         users.sort(key=lambda u: u['last_active'] or '', reverse=True)
-        return Response({'users': users})
+
+        total = len(users)
+        start = (page - 1) * page_size
+        paged = users[start:start + page_size]
+
+        return Response({'results': paged, 'count': total})
 
 
 class ChatUserDetailView(APIView):

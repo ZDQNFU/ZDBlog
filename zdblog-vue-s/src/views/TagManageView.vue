@@ -6,6 +6,9 @@ import { Search } from '@element-plus/icons-vue'
 
 const tags = ref([])
 const loading = ref(false)
+const total = ref(0)
+const page = ref(1)
+const pageSize = ref(20)
 const search = ref('')
 let searchTimer = null
 
@@ -21,10 +24,11 @@ const formLoading = ref(false)
 async function load() {
   loading.value = true
   try {
-    const params = {}
+    const params = { page: page.value, page_size: pageSize.value }
     if (search.value) params.search = search.value
     const { data } = await fetchTags(params)
     tags.value = data.results || data
+    total.value = data.count || 0
   } finally {
     loading.value = false
   }
@@ -32,7 +36,18 @@ async function load() {
 
 function onSearchChange() {
   clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => load(), 300)
+  searchTimer = setTimeout(() => { page.value = 1; load() }, 300)
+}
+
+function onPageChange(p) {
+  page.value = p
+  load()
+}
+
+function onSizeChange(s) {
+  pageSize.value = s
+  page.value = 1
+  load()
 }
 
 function openDialog(row) {
@@ -123,6 +138,19 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+
+    <el-pagination
+      v-if="total > 0"
+      style="margin-top:16px;justify-content:center"
+      background
+      layout="total, sizes, prev, pager, next"
+      :total="total"
+      :page-size="pageSize"
+      :current-page="page"
+      :page-sizes="[10, 20, 50]"
+      @current-change="onPageChange"
+      @size-change="onSizeChange"
+    />
 
     <el-dialog v-model="detailVisible" title="标签详情" width="460px" destroy-on-close>
       <el-descriptions v-if="detailRow" :column="1" border>

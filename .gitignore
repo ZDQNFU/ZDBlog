@@ -2,6 +2,7 @@
 .idea/
 *.swp
 *.swo
+.vscode
 
 # Claude Code
 .claude/
@@ -18,9 +19,15 @@ dist/
 
 # Environment
 .env
-**/config/settings.py
+.env.production
+
+# Docker
+*.tar
+docker-compose.override.yml
 
 # Data
 data/
 data/**/*
 **/data/
+
+.git

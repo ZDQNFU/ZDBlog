@@ -41,8 +41,14 @@ function onPageChange(p) {
   load()
 }
 
-function onSelectChange(keys) {
-  selectedKeys.value = keys
+function onSizeChange(s) {
+  pageSize.value = s
+  page.value = 1
+  load()
+}
+
+function onSelectChange(rows) {
+  selectedKeys.value = rows.map(r => r.session_key)
 }
 
 async function openDetail(row) {
@@ -156,9 +162,11 @@ onMounted(load)
 
     <div class="pagination-wrap">
       <el-pagination
-        background layout="total, prev, pager, next"
+        background layout="total, sizes, prev, pager, next"
         :total="total" :page-size="pageSize" :current-page="page"
+        :page-sizes="[10, 20, 50]"
         @current-change="onPageChange"
+        @size-change="onSizeChange"
       />
     </div>
 

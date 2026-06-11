@@ -264,8 +264,7 @@ def perform_create(self, serializer):
 cd zdblog-master
 
 # 创建虚拟环境
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+conda create -n zblog python=3.12
 
 # 安装依赖
 pip install -r requirements.txt

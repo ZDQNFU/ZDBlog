@@ -57,7 +57,8 @@ function getTimeLabel(index) {
 
 function renderMarkdown(text) {
   if (!text) return ''
-  return marked(text)
+  // 只去除末尾换行，保留段落间的 \n\n 让 marked 生成 <p> 标签
+  return marked(text.trimEnd())
 }
 
 function getUserInitial() {
@@ -101,7 +102,10 @@ async function handleSend() {
     },
     () => {
       const msg = messages.value.find(m => m.id === aiId)
-      if (msg) msg.createdAt = new Date().toISOString()
+      if (msg) {
+        msg.content = msg.content.trimEnd()
+        msg.createdAt = new Date().toISOString()
+      }
       sending.value = false
     },
     (err) => {
@@ -219,9 +223,9 @@ onMounted(async () => {
                   <span class="msg-author">{{ m.role === 'ai' ? '明日香' : (auth.user?.username || '我') }}</span>
                 </div>
                 <div :class="['msg-bubble', m.role]">
-                  <template v-if="m.role === 'user'">{{ m.content }}</template>
+                  <template v-if="m.role === 'user'"><span class="plain-text">{{ m.content }}</span></template>
                   <template v-else-if="m.role === 'ai' && sending && m === messages[messages.length - 1]">
-                    <template v-if="m.content">{{ m.content }}</template>
+                    <template v-if="m.content"><span class="plain-text">{{ m.content }}</span></template>
                     <div v-else class="typing-dots-inline">
                       <span></span><span></span><span></span>
                     </div>
@@ -507,7 +511,6 @@ onMounted(async () => {
   border-radius: 16px;
   font-size: 0.9rem;
   line-height: 1.7;
-  white-space: pre-wrap;
   word-break: break-word;
   position: relative;
 }
@@ -523,6 +526,11 @@ onMounted(async () => {
   border: 1px solid var(--color-border);
   border-bottom-left-radius: 6px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+/* 纯文本（用户消息 & 流式输出中的 AI 消息，参照 S 端 pre-wrap） */
+.plain-text {
+  white-space: pre-wrap;
 }
 
 /* ========== Markdown in AI bubbles ========== */

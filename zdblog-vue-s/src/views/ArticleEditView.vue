@@ -35,7 +35,10 @@ const form = ref({
 })
 
 async function loadOptions() {
-  const [catRes, tagRes] = await Promise.all([fetchCategories(), fetchTags()])
+  const [catRes, tagRes] = await Promise.all([
+    fetchCategories({ page_size: 1000 }),
+    fetchTags({ page_size: 1000 }),
+  ])
   categories.value = catRes.data.results || catRes.data
   tags.value = tagRes.data.results || tagRes.data
 }

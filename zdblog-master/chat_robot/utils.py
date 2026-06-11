@@ -161,6 +161,10 @@ def stream_chat_with_agent(agent, user_input, thread_id="default-thread"):
         if not text:
             continue
 
+        # 过滤纯空白 token（如 LLM 末尾的换行符），避免 C 端渲染空白行
+        if not text.strip():
+            continue
+
         msg_id = getattr(message, 'id', None)
 
         # 消息 ID 变化 → 重置检测状态
