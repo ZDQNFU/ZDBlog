@@ -198,7 +198,7 @@ onUnmounted(() => {
           <router-link
             v-for="item in recommended"
             :key="item.id"
-            :to="`/articles/${item.id}`"
+            :to="`/article/${item.id}`"
             class="rec-item"
           >
             <div v-if="item.cover" class="rec-cover" :style="{ backgroundImage: `url(${item.cover})` }"></div>
@@ -327,7 +327,7 @@ onUnmounted(() => {
 .sphere-stage {
   position: relative;
   width: 100%;
-  height: 80%;
+  height: 90%;
 }
 
 :deep(.tag-bubble) {

@@ -331,7 +331,7 @@ onUnmounted(() => {
 .articles-section {
   position: relative;
   z-index: 2;
-  margin-top: -60px;
+  /* margin-top: -60px; */
   padding-top: 60px;
   padding-bottom: 64px;
   background: linear-gradient(to bottom, transparent 0%, var(--color-bg) 60px);

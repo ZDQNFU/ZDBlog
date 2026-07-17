@@ -1,0 +1,1 @@
+import{a as e}from"./index-Dw5VLE2g.js";var t=`/tracking/visitors`;function n(n={}){return e.get(`${t}/`,{params:n})}function r(n){return e.get(`${t}/${n}/`)}function i(n){return e.delete(`${t}/${n}/`)}function a(n){return e.post(`${t}/delete/`,{session_keys:n})}function o(){return e.get(`${t}/geo/`)}export{n as a,o as i,i as n,r,a as t};

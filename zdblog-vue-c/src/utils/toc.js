@@ -1,4 +1,4 @@
-function slugify(text) {
+export function slugify(text) {
   return text
     .toLowerCase()
     .replace(/[^\w一-鿿\s-]/g, '')

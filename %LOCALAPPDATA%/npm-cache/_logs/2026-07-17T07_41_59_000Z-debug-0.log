@@ -1,0 +1,145 @@
+0 verbose cli D:\Program Files\nodejs\node.exe D:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.12.1
+2 info using node@v24.15.0
+3 silly config load:file:D:\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:E:\github\zdblog\.npmrc
+5 silly config load:file:C:\Users\ZDQNFU\.npmrc
+6 silly config load:file:D:\Program Files (x86)\nodejs\node_global\etc\npmrc
+7 verbose title npm info @web-types/quasar-framework
+8 verbose argv "info" "--json" "@web-types/quasar-framework"
+9 verbose logfile logs-max:10 dir:E:\github\zdblog\%LOCALAPPDATA%\npm-cache\_logs\2026-07-17T07_41_59_000Z-
+10 verbose logfile E:\github\zdblog\%LOCALAPPDATA%\npm-cache\_logs\2026-07-17T07_41_59_000Z-debug-0.log
+11 silly logfile start cleaning logs, removing 1 files
+12 silly logfile done cleaning log files
+13 http fetch GET 200 https://mirrors.cloud.tencent.com/npm/@web-types%2fquasar-framework 297ms (cache updated)
+14 silly view {
+14 silly view   '0.17.19-3': {
+14 silly view     name: '@web-types/quasar-framework',
+14 silly view     versions: [
+14 silly view       '0.17.0-1',  '0.17.0-2',  '0.17.0-3',
+14 silly view       '0.17.2-1',  '0.17.3-1',  '0.17.5-1',
+14 silly view       '0.17.5-2',  '0.17.5-3',  '0.17.6-1',
+14 silly view       '0.17.6-2',  '0.17.6-3',  '0.17.7-1',
+14 silly view       '0.17.7-2',  '0.17.7-3',  '0.17.9-1',
+14 silly view       '0.17.9-2',  '0.17.9-3',  '0.17.10-1',
+14 silly view       '0.17.10-2', '0.17.10-3', '0.17.11-1',
+14 silly view       '0.17.11-2', '0.17.11-3', '0.17.12-1',
+14 silly view       '0.17.13-1', '0.17.13-2', '0.17.13-3',
+14 silly view       '0.17.14-1', '0.17.15-1', '0.17.15-2',
+14 silly view       '0.17.15-3', '0.17.16-1', '0.17.16-2',
+14 silly view       '0.17.16-3', '0.17.17-1', '0.17.17-2',
+14 silly view       '0.17.17-3', '0.17.18-1', '0.17.18-2',
+14 silly view       '0.17.18-3', '0.17.19-1', '0.17.19-2',
+14 silly view       '0.17.19-3', '0.17.20-1'
+14 silly view     ],
+14 silly view     time: {
+14 silly view       created: '2019-06-13T11:13:36.099Z',
+14 silly view       '0.17.0-1': '2019-06-13T11:13:36.407Z',
+14 silly view       modified: '2022-04-07T12:10:46.206Z',
+14 silly view       '0.17.5-1': '2019-06-13T11:14:03.806Z',
+14 silly view       '0.17.6-1': '2019-06-13T11:14:11.254Z',
+14 silly view       '0.17.7-1': '2019-06-13T11:14:16.791Z',
+14 silly view       '0.17.9-1': '2019-06-13T11:14:23.332Z',
+14 silly view       '0.17.10-1': '2019-06-13T11:14:29.125Z',
+14 silly view       '0.17.11-1': '2019-06-13T11:14:35.896Z',
+14 silly view       '0.17.13-1': '2019-06-13T11:14:40.868Z',
+14 silly view       '0.17.15-1': '2019-06-13T11:14:47.477Z',
+14 silly view       '0.17.16-1': '2019-06-13T11:14:52.299Z',
+14 silly view       '0.17.17-1': '2019-06-13T11:15:00.255Z',
+14 silly view       '0.17.18-1': '2019-06-13T11:15:06.077Z',
+14 silly view       '0.17.19-1': '2019-06-13T11:15:14.951Z',
+14 silly view       '0.17.0-2': '2019-06-21T08:40:37.969Z',
+14 silly view       '0.17.2-1': '2019-06-21T08:40:43.186Z',
+14 silly view       '0.17.3-1': '2019-06-21T08:40:47.953Z',
+14 silly view       '0.17.5-2': '2019-06-21T08:40:54.447Z',
+14 silly view       '0.17.6-2': '2019-06-21T08:41:01.294Z',
+14 silly view       '0.17.7-2': '2019-06-21T08:41:07.705Z',
+14 silly view       '0.17.9-2': '2019-06-21T08:41:16.789Z',
+14 silly view       '0.17.10-2': '2019-06-21T08:41:23.557Z',
+14 silly view       '0.17.11-2': '2019-06-21T08:41:29.233Z',
+14 silly view       '0.17.12-1': '2019-06-21T08:41:34.646Z',
+14 silly view       '0.17.13-2': '2019-06-21T08:41:42.559Z',
+14 silly view       '0.17.14-1': '2019-06-21T08:41:48.033Z',
+14 silly view       '0.17.15-2': '2019-06-21T08:41:55.320Z',
+14 silly view       '0.17.16-2': '2019-06-21T08:42:05.601Z',
+14 silly view       '0.17.17-2': '2019-06-21T08:42:13.345Z',
+14 silly view       '0.17.18-2': '2019-06-21T08:42:22.702Z',
+14 silly view       '0.17.19-2': '2019-06-21T08:42:36.745Z',
+14 silly view       '0.17.20-1': '2019-06-21T08:42:40.889Z',
+14 silly view       '0.17.0-3': '2019-08-08T15:45:17.621Z',
+14 silly view       '0.17.5-3': '2019-08-08T15:45:24.154Z',
+14 silly view       '0.17.6-3': '2019-08-08T15:45:32.481Z',
+14 silly view       '0.17.7-3': '2019-08-08T15:45:42.109Z',
+14 silly view       '0.17.9-3': '2019-08-08T15:45:49.873Z',
+14 silly view       '0.17.10-3': '2019-08-08T15:45:58.233Z',
+14 silly view       '0.17.11-3': '2019-08-08T15:46:04.078Z',
+14 silly view       '0.17.13-3': '2019-08-08T15:46:11.319Z',
+14 silly view       '0.17.15-3': '2019-08-08T15:46:16.879Z',
+14 silly view       '0.17.16-3': '2019-08-08T15:46:23.772Z',
+14 silly view       '0.17.17-3': '2019-08-08T15:46:29.615Z',
+14 silly view       '0.17.18-3': '2019-08-08T15:46:37.255Z',
+14 silly view       '0.17.19-3': '2019-08-08T15:46:41.980Z'
+14 silly view     },
+14 silly view     users: {},
+14 silly view     'dist-tags': { latest: '0.17.19-3' },
+14 silly view     _rev: '2345-e4ddaca4f8705598',
+14 silly view     _id: '@web-types/quasar-framework@0.17.19-3',
+14 silly view     _attachments: {},
+14 silly view     version: '0.17.19-3',
+14 silly view     description: 'Web-types for quasar-framework',
+14 silly view     keywords: [ 'web-types', 'quasar-framework' ],
+14 silly view     author: { name: 'JetBrains' },
+14 silly view     license: 'Apache-2.0',
+14 silly view     repository: {
+14 silly view       type: 'git',
+14 silly view       url: 'git+https://github.com/JetBrains/web-types.git'
+14 silly view     },
+14 silly view     'web-types': 'quasar-framework.web-types.json',
+14 silly view     bugs: { url: 'https://github.com/JetBrains/web-types/issues' },
+14 silly view     homepage: 'https://github.com/JetBrains/web-types#readme',
+14 silly view     _npmVersion: '6.4.1',
+14 silly view     _nodeVersion: '10.15.1',
+14 silly view     _npmUser: { name: 'piotr.tomiak', email: 'piotr.tomiak@jetbrains.com' },
+14 silly view     dist: {
+14 silly view       integrity: 'sha512-87c+jp6vgcgYHY3xKOpWtyqMvEaxRAamsnJ3LCksYMBl6JaGadYme6Qh+a3yDeRYLEgYWvJeqrFF8zlFy+Jh/Q==',
+14 silly view       shasum: 'c5e5cdbb14d5ff5084fedb46bf97a00dc82db0fa',
+14 silly view       tarball: 'https://mirrors.cloud.tencent.com/npm/@web-types/quasar-framework/-/quasar-framework-0.17.19-3.tgz',
+14 silly view       fileCount: 3,
+14 silly view       unpackedSize: 259552,
+14 silly view       'npm-signature': '-----BEGIN PGP SIGNATURE-----\r\n' +
+14 silly view         'Version: OpenPGP.js v3.0.4\r\n' +
+14 silly view         'Comment: https://openpgpjs.org\r\n' +
+14 silly view         '\r\n' +
+14 silly view         'wsFcBAEBCAAQBQJdTEPiCRA9TVsSAnZWagAAdZ8P+wYXs4AWta92iDSXLKM0\n' +
+14 silly view         'c459lyVcMlRu4MgMPwL8Szpan9qH7Rptn+91u6mmN3Nt8aefHrvApkOJGaVt\n' +
+14 silly view         'HHzQ48FXRlPuzjmPmKj124OU9+cMdgWkvQoVYBzUqGR/QCW3cPnTK+P5iXSn\n' +
+14 silly view         'qygOSLI5wd4UHnhZWSahPP0089JT9f5bPk4aAzM6k3sy8+GjL/8hw4KZo3xR\n' +
+14 silly view         'VPx58OYmSH32pOn2mjag5AE9xd7lTDFVQvRQk8mBAKj64GpBNNBdxKFVVoQn\n' +
+14 silly view         'xb42zlDLY59ru4QD9hPGcF0htrbCtHdALnsXxEqQGP7o3UqFWNEdnE2XTMSK\n' +
+14 silly view         'LZLnROfordRp3zmIQRG3/PsKn1tJWfDNfHkfpXvxYBMhbzG8ZSPLV9yRDEZM\n' +
+14 silly view         'pqdTesPQWBr5DfZZxZa6sVOFlbgN6ak0GQqke9BI/De40SQJ3VtEycSMkLJf\n' +
+14 silly view         'SvrbDvjYKpX/nh1fUsRFxKKfkF50lqAtzXoLQUDTP592PGHQqw/06lNR3jCe\n' +
+14 silly view         'eoV8dO5/Ui5oxEUZlG2HAsaXPySK7tzVXg2jbJ4DfrJJglXN0/Lt9zv9Pwsf\n' +
+14 silly view         'zFIMmngG+25/IX+07YDuUoHNzj9EaPtyoSSCsgDHIM6rhuwzZkfAHC01HaNm\n' +
+14 silly view         'cvsMZ5pukXYq00gkN5FZGhrgn5kLKol4Qf/WJYYmap1mQgN+h9RGuPrmCfpe\n' +
+14 silly view         'tTrf\r\n' +
+14 silly view         '=l5j3\r\n' +
+14 silly view         '-----END PGP SIGNATURE-----\r\n',
+14 silly view       signatures: [Array]
+14 silly view     },
+14 silly view     maintainers: [ [Object] ],
+14 silly view     directories: {},
+14 silly view     _npmOperationalInternal: {
+14 silly view       host: 's3://npm-registry-packages',
+14 silly view       tmp: 'tmp/quasar-framework_0.17.19-3_1565279201858_0.89185507956408'
+14 silly view     },
+14 silly view     _hasShrinkwrap: false,
+14 silly view     contributors: []
+14 silly view   }
+14 silly view }
+15 verbose cwd E:\github\zdblog
+16 verbose os Windows_NT 10.0.26200
+17 verbose node v24.15.0
+18 verbose npm  v11.12.1
+19 verbose exit 0
+20 info ok

@@ -20,6 +20,8 @@ class LoginSerializer(serializers.Serializer):
                 raise serializers.ValidationError(_('用户名或密码错误'))
             if not user.is_active:
                 raise serializers.ValidationError(_('该用户已被禁用'))
+            if not user.is_staff and not user.is_superuser:
+                raise serializers.ValidationError(_('该账号没有后台管理权限'))
             attrs['user'] = user
         else:
             raise serializers.ValidationError(_('请输入用户名和密码'))

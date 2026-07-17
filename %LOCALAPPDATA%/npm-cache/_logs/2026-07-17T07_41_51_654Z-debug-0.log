@@ -1,0 +1,89 @@
+0 verbose cli D:\Program Files\nodejs\node.exe D:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.12.1
+2 info using node@v24.15.0
+3 silly config load:file:D:\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:E:\github\zdblog\.npmrc
+5 silly config load:file:C:\Users\ZDQNFU\.npmrc
+6 silly config load:file:D:\Program Files (x86)\nodejs\node_global\etc\npmrc
+7 verbose title npm info @web-types/lit
+8 verbose argv "info" "--json" "@web-types/lit"
+9 verbose logfile logs-max:10 dir:E:\github\zdblog\%LOCALAPPDATA%\npm-cache\_logs\2026-07-17T07_41_51_654Z-
+10 verbose logfile E:\github\zdblog\%LOCALAPPDATA%\npm-cache\_logs\2026-07-17T07_41_51_654Z-debug-0.log
+11 silly logfile start cleaning logs, removing 1 files
+12 silly logfile done cleaning log files
+13 http fetch GET 200 https://mirrors.cloud.tencent.com/npm/@web-types%2flit 990ms (cache updated)
+14 silly view {
+14 silly view   '2.0.0-3': {
+14 silly view     name: '@web-types/lit',
+14 silly view     versions: [ '2.0.0-1', '2.0.0-2', '2.0.0-3' ],
+14 silly view     time: {
+14 silly view       created: '2022-04-11T08:23:24.882Z',
+14 silly view       '2.0.0-1': '2022-04-11T08:23:25.104Z',
+14 silly view       modified: '2022-04-11T11:27:26.275Z',
+14 silly view       '2.0.0-2': '2022-04-11T11:15:00.445Z',
+14 silly view       '2.0.0-3': '2022-04-11T11:27:24.319Z'
+14 silly view     },
+14 silly view     users: {},
+14 silly view     'dist-tags': { latest: '2.0.0-3' },
+14 silly view     _rev: '253-d27166948128f948',
+14 silly view     _id: '@web-types/lit@2.0.0-3',
+14 silly view     _attachments: {},
+14 silly view     version: '2.0.0-3',
+14 silly view     description: 'Web-types for lit',
+14 silly view     keywords: [ 'web-types', 'lit' ],
+14 silly view     author: { name: 'JetBrains' },
+14 silly view     license: 'Apache-2.0',
+14 silly view     repository: {
+14 silly view       type: 'git',
+14 silly view       url: 'git+https://github.com/JetBrains/web-types.git'
+14 silly view     },
+14 silly view     'web-types': 'lit.web-types.json',
+14 silly view     gitHead: '971fc5ec1a0bc511c8cde98b66e13beea3d10cba',
+14 silly view     bugs: { url: 'https://github.com/JetBrains/web-types/issues' },
+14 silly view     homepage: 'https://github.com/JetBrains/web-types#readme',
+14 silly view     _nodeVersion: '16.13.1',
+14 silly view     _npmVersion: '8.1.2',
+14 silly view     dist: {
+14 silly view       integrity: 'sha512-vZG6zfQ8+gM5Qsv0D5k9X8f/cBqk3y8qhgy0y5g+or+hi3PH6UNNMBMd6QRrlBZUoXCXR/cpVvfPTDj9w5FlwQ==',
+14 silly view       shasum: 'dc7c7d6d3500b1dd298d86fc130ba84670e1d609',
+14 silly view       tarball: 'https://mirrors.cloud.tencent.com/npm/@web-types/lit/-/lit-2.0.0-3.tgz',
+14 silly view       fileCount: 4,
+14 silly view       unpackedSize: 6695,
+14 silly view       signatures: [Array],
+14 silly view       'npm-signature': '-----BEGIN PGP SIGNATURE-----\r\n' +
+14 silly view         'Version: OpenPGP.js v4.10.10\r\n' +
+14 silly view         'Comment: https://openpgpjs.org\r\n' +
+14 silly view         '\r\n' +
+14 silly view         'wsFzBAEBCAAGBQJiVBCcACEJED1NWxICdlZqFiEECWMYAoorWMhJKdjhPU1b\r\n' +
+14 silly view         'EgJ2VmokjQ//Sd2XSl3AEKVwyKS8s2fQ/Yv72R6bO83RplG2oAK1BIw6hkTZ\r\n' +
+14 silly view         'kOh4OSLMlkbWBfZ1oBIGk5QTd7Y94lwoJUtrm1sCJcg1o6A3Ph5rNysmKG0J\r\n' +
+14 silly view         'USLMHrNNsHNfbJqUuH/zfEWlTE5JFKYCpFbZUj/+td3usQ8JUTSVeL9ssywT\r\n' +
+14 silly view         'iw//qZS4l1vdmCKzcI7FVPL6CUsuXDRqFVlThaNeEW71D8uOrwZt4+hk3lSs\r\n' +
+14 silly view         '1VF5qVDyDnrKJwvzJsQnLx6frB3CFyDrIA9FMpbfKjHc6Zb/smWcEKke5o4i\r\n' +
+14 silly view         'ieErMLcAvuEu6GBnDeWtu6fB9hVbW677pmRfiLBTj2NGRqPxAM9pXVnZto9G\r\n' +
+14 silly view         '+nahrRtOH3sQSKYyYp7li14wNWk5os5xBc7DNF/vhFvE5hQqgWGjYanvvIfg\r\n' +
+14 silly view         's4NZegl5dpgrT4JPoe251wZA93QbtThf1pbRo2SgCfTdZrji+wBd61jf4wOY\r\n' +
+14 silly view         'f/evdhc+qB6ioFJqAZgT2eCwmf2S12/ziFe+BCBaLO4Cm8TE+hG01Ki+SV6p\r\n' +
+14 silly view         'mDNh7tkJbL4DDIU1wZnlximvBFmf+//1NUXw4wryBirT4zm4Xx+1TiKcG12t\r\n' +
+14 silly view         '7wWU4FiXhuW2DgoRaapX5heTWrdAgS1rvfAPiHYlcfuzxu3KXxiiOsx6BPPq\r\n' +
+14 silly view         'RUZODy9XCIaEs2b3Av99ULAvBoxemMmhB4k=\r\n' +
+14 silly view         '=Hvm6\r\n' +
+14 silly view         '-----END PGP SIGNATURE-----\r\n'
+14 silly view     },
+14 silly view     _npmUser: { name: 'piotr.tomiak', email: 'piotr.tomiak@jetbrains.com' },
+14 silly view     directories: {},
+14 silly view     maintainers: [ [Object] ],
+14 silly view     _npmOperationalInternal: {
+14 silly view       host: 's3://npm-registry-packages',
+14 silly view       tmp: 'tmp/lit_2.0.0-3_1649676444185_0.4454335298323493'
+14 silly view     },
+14 silly view     _hasShrinkwrap: false,
+14 silly view     contributors: []
+14 silly view   }
+14 silly view }
+15 verbose cwd E:\github\zdblog
+16 verbose os Windows_NT 10.0.26200
+17 verbose node v24.15.0
+18 verbose npm  v11.12.1
+19 verbose exit 0
+20 info ok

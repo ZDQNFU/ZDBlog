@@ -89,6 +89,12 @@ router.beforeEach((to, from, next) => {
   const user = JSON.parse(localStorage.getItem('user') || 'null')
   if (to.meta.requiresAuth && !token) {
     next('/login')
+  } else if (to.meta.requiresAuth && !user?.is_staff && !user?.is_superuser) {
+    // 非 staff / 非超级管理员无权访问后台
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user')
+    next('/login')
   } else if (to.meta.superadmin && !user?.is_superuser) {
     next('/')
   } else if (to.meta.guest && token) {

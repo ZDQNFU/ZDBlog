@@ -1,0 +1,22 @@
+0 verbose cli D:\Program Files\nodejs\node.exe D:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.12.1
+2 info using node@v24.15.0
+3 silly config load:file:D:\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:E:\github\zdblog\.npmrc
+5 silly config load:file:C:\Users\ZDQNFU\.npmrc
+6 silly config load:file:D:\Program Files (x86)\nodejs\node_global\etc\npmrc
+7 verbose title npm search @web-types
+8 verbose argv "search" "--json" "@web-types"
+9 verbose logfile logs-max:10 dir:E:\github\zdblog\%LOCALAPPDATA%\npm-cache\_logs\2026-07-17T07_41_40_303Z-
+10 verbose logfile E:\github\zdblog\%LOCALAPPDATA%\npm-cache\_logs\2026-07-17T07_41_40_303Z-debug-0.log
+11 silly logfile start cleaning logs, removing 1 files
+12 silly search searching packages
+13 silly logfile done cleaning log files
+14 http fetch GET 200 https://mirrors.cloud.tencent.com/npm/-/v1/search?text=%40web-types&size=20&from=0&quality=0.65&popularity=0.98&maintenance=0.5 1316ms (cache updated)
+15 silly search search completed
+16 verbose cwd E:\github\zdblog
+17 verbose os Windows_NT 10.0.26200
+18 verbose node v24.15.0
+19 verbose npm  v11.12.1
+20 verbose exit 0
+21 info ok

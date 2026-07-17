@@ -1,9 +1,6 @@
 import json
-import os
-import sqlite3
 from datetime import datetime, timedelta
 
-import msgpack
 from django.contrib.auth.models import User
 from django.db.models import Count, Max, Q
 from django.http import StreamingHttpResponse
@@ -22,65 +19,16 @@ def _estimate_tokens(text):
     return len(text.encode('utf-8'))
 
 
-# ---------- SQLite checkpoint helpers (keeps LangGraph state in sync with MySQL) ----------
-
-def _get_db_path():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(current_dir, 'data', 'asuka_memory.db')
-
-
-def _get_conn():
-    return sqlite3.connect(_get_db_path())
-
-
-def _decode_checkpoint(blob):
-    return msgpack.unpackb(blob)
-
+# ---------- SQLite checkpoint helpers (已迁移到 InMemorySaver，保留接口兼容) ----------
 
 def _delete_checkpoints_for_thread(thread_id):
-    """Delete all checkpoints and writes for a thread in SQLite."""
-    conn = _get_conn()
-    try:
-        cursor = conn.cursor()
-        cursor.execute('DELETE FROM writes WHERE thread_id = ?', (thread_id,))
-        cursor.execute('DELETE FROM checkpoints WHERE thread_id = ?', (thread_id,))
-        conn.commit()
-        return cursor.rowcount
-    finally:
-        conn.close()
+    """已废弃：checkpoint 现由 InMemorySaver 管理，无需清理 SQLite。"""
+    pass
 
 
 def _trim_checkpoints_for_thread(thread_id, keep_days):
-    """Delete checkpoints older than keep_days for a thread in SQLite."""
-    conn = _get_conn()
-    try:
-        cursor = conn.cursor()
-        cutoff = (datetime.now() - timedelta(days=keep_days)).isoformat()
-
-        cursor.execute(
-            'SELECT checkpoint_id, checkpoint FROM checkpoints WHERE thread_id = ? ORDER BY rowid ASC',
-            (thread_id,)
-        )
-        rows = cursor.fetchall()
-
-        deleted = 0
-        for cp_id, blob in rows:
-            cp = _decode_checkpoint(blob)
-            ts = cp.get('ts', '')
-            if ts and ts < cutoff:
-                cursor.execute(
-                    'DELETE FROM writes WHERE thread_id = ? AND checkpoint_id = ?',
-                    (thread_id, cp_id)
-                )
-                cursor.execute(
-                    'DELETE FROM checkpoints WHERE thread_id = ? AND checkpoint_id = ?',
-                    (thread_id, cp_id)
-                )
-                deleted += 1
-        conn.commit()
-        return deleted
-    finally:
-        conn.close()
+    """已废弃：checkpoint 现由 InMemorySaver 管理，无需裁剪 SQLite。"""
+    pass
 
 
 class ChatStreamView(APIView):

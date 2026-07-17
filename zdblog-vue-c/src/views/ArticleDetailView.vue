@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import { MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import { fetchArticleDetail, likeArticle, unlikeArticle, verifyArticlePassword } from '@/api'
-import { extractTOCFromMarkdown, extractTOCFromContainer } from '@/utils/toc'
+import { extractTOCFromMarkdown, extractTOCFromContainer, slugify } from '@/utils/toc'
 import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/composables/useTheme'
 import CommentForm from '@/components/CommentForm.vue'
@@ -47,12 +47,22 @@ function refreshTOC() {
   if (article.value?.content_md) {
     toc.value = extractTOCFromMarkdown(article.value.content_md)
   }
-  nextTick(() => {
+  // 使用 setTimeout 确保 md-editor-v3 完全渲染后再读取 DOM 中的标题
+  // md-editor-v3 内部的渲染可能在 Vue nextTick 之后才完成
+  setTimeout(() => {
     if (contentRef.value) {
+      // 强制给所有标题设置 id，保证与 TOC 中 slugify 生成的 id 一致
+      const headings = contentRef.value.querySelectorAll('h1, h2, h3')
+      headings.forEach(h => {
+        const text = h.textContent.trim()
+        if (text) {
+          h.id = slugify(text)
+        }
+      })
       const domToc = extractTOCFromContainer(contentRef.value)
       if (domToc.length) toc.value = domToc
     }
-  })
+  }, 150)
 }
 
 async function loadArticle() {
@@ -488,12 +498,30 @@ onMounted(async () => {
   font-size: 1rem;
   line-height: 1.85;
   margin-bottom: 48px;
-  /* padding: 0 32px; */
 }
 
 .md {
-  padding: 20px;
+  /* padding: 5px; */
   border-radius: 15px;
+  background: var(--color-bg);
+}
+
+/* 覆盖 md-editor-v3 内部预览区域的默认背景 */
+.article-content :deep(.md-editor-preview-wrapper) {
+  background: var(--color-bg) !important;
+}
+.article-content :deep(.md-editor-preview) {
+  background: var(--color-bg) !important;
+}
+
+/* 修复 md-editor-v3 代码块头部（"javascript 复制代码"）z-index 过高，
+   滚动时盖在导航栏上方的问题 */
+.article-content :deep(.md-editor-code) {
+  position: relative;
+  z-index: 0;
+}
+.article-content :deep(.md-editor-code-head) {
+  z-index: 0 !important;
 }
 
 .article-content :deep(h1),

@@ -323,6 +323,7 @@ onUnmounted(() => {
 }
 .hamburger-btn span {
   display: block;
+  width: 100%;
   height: 2px;
   background: var(--color-text);
   border-radius: 2px;
