@@ -1,1 +1,0 @@
-import{a as e}from"./index-Dw5VLE2g.js";var t=`/articles/s/tags`;function n(n={}){return e.get(`${t}/`,{params:n})}function r(n){return e.post(`${t}/`,n)}function i(n,r){return e.patch(`${t}/${n}/`,r)}function a(n){return e.delete(`${t}/${n}/`)}export{i,a as n,n as r,r as t};
