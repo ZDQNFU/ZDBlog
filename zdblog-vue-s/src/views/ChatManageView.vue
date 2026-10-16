@@ -16,6 +16,12 @@ const detailVisible = ref(false)
 const detailUser = ref(null)
 const detailMessages = ref([])
 const detailLoading = ref(false)
+const detailConversations = ref([])
+const detailConversationId = ref('')
+const detailTotal = ref(0)
+const detailPage = ref(1)
+const detailPageSize = ref(20)
+let detailRequest = 0
 
 const trimVisible = ref(false)
 const trimUserId = ref(null)
@@ -30,6 +36,11 @@ async function load() {
     const { data } = await fetchChatUsers(params)
     users.value = data.results || data
     total.value = data.count || 0
+    const lastPage = Math.max(1, Math.ceil(total.value / pageSize.value))
+    if (page.value > lastPage) {
+      page.value = lastPage
+      await load()
+    }
   } finally {
     loading.value = false
   }
@@ -37,7 +48,10 @@ async function load() {
 
 function onSearchChange() {
   clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => { page.value = 1; load() }, 300)
+  searchTimer = setTimeout(() => {
+    page.value = 1
+    load()
+  }, 300)
 }
 
 function onPageChange(p) {
@@ -52,27 +66,64 @@ function onSizeChange(s) {
 }
 
 async function openDetail(user) {
+  detailRequest++
   detailUser.value = user
   detailVisible.value = true
   detailMessages.value = []
+  detailConversations.value = []
+  detailConversationId.value = ''
+  detailTotal.value = 0
+  detailPage.value = 1
+  await loadDetailMessages(1)
+}
+
+async function loadDetailMessages(targetPage = detailPage.value) {
+  if (!detailUser.value) return
+  const request = ++detailRequest
   detailLoading.value = true
   try {
-    const { data } = await fetchChatUserDetail(user.id)
-    detailMessages.value = data.messages
+    const params = { page: targetPage, page_size: detailPageSize.value }
+    if (detailConversationId.value) params.conversation_id = detailConversationId.value
+    const { data } = await fetchChatUserDetail(detailUser.value.id, params)
+    if (request !== detailRequest) return
+    detailConversations.value = data.conversations || []
+    detailConversationId.value = data.selected_conversation_id || ''
+    detailMessages.value = data.messages || []
+    detailTotal.value = data.count || 0
+    detailPage.value = data.page || 1
   } catch {
-    ElMessage.error('加载聊天记录失败')
+    if (request === detailRequest) ElMessage.error('加载聊天记录失败')
   } finally {
-    detailLoading.value = false
+    if (request === detailRequest) detailLoading.value = false
   }
+}
+
+function onDetailConversationChange() {
+  detailPage.value = 1
+  loadDetailMessages(1)
+}
+
+function onDetailPageChange(value) {
+  loadDetailMessages(value)
+}
+
+function onDetailSizeChange(value) {
+  detailPageSize.value = value
+  detailPage.value = 1
+  loadDetailMessages(1)
 }
 
 async function handleClear(user) {
   try {
-    await ElMessageBox.confirm(`确定清空用户「${user.username}」的全部聊天记录？`, '确认', { type: 'warning' })
+    await ElMessageBox.confirm(`确定清空用户「${user.username}」的全部聊天记录？`, '确认', {
+      type: 'warning',
+    })
     const { data } = await clearChatHistory(user.id)
     ElMessage.success(data.detail || '已清空')
     load()
-  } catch { /* cancelled */ }
+  } catch {
+    /* cancelled */
+  }
 }
 
 function openTrim(user) {
@@ -109,7 +160,7 @@ onMounted(load)
 <template>
   <div>
     <div class="page-header">
-      <h2>聊天管理</h2>
+      <h2>聊天记录</h2>
       <div class="header-right">
         <el-input
           v-model="search"
@@ -118,12 +169,13 @@ onMounted(load)
           style="width: 220px"
           :prefix-icon="Search"
           @input="onSearchChange"
-          @clear="load"
+          @clear="onSearchChange"
         />
       </div>
     </div>
 
-    <el-table :data="users" v-loading="loading" stripe border style="width:100%">
+    <h3 style="margin-bottom: 16px">有聊天记录的用户</h3>
+    <el-table :data="users" v-loading="loading" stripe border style="width: 100%">
       <el-table-column prop="username" label="用户名" min-width="120" />
       <el-table-column prop="message_count" label="消息数" width="100" align="center" />
       <el-table-column label="最后活跃" min-width="170">
@@ -140,7 +192,7 @@ onMounted(load)
 
     <el-pagination
       v-if="total > 0"
-      style="margin-top:16px;justify-content:center"
+      style="margin-top: 16px; justify-content: center"
       background
       layout="total, sizes, prev, pager, next"
       :total="total"
@@ -154,24 +206,57 @@ onMounted(load)
     <div v-if="!loading && !users.length" class="empty-text">暂无聊天记录</div>
 
     <!-- Detail dialog -->
-    <el-dialog v-model="detailVisible" :title="`${detailUser?.username} 的聊天记录`" width="700px" destroy-on-close>
+    <el-dialog
+      v-model="detailVisible"
+      :title="`${detailUser?.username} 的聊天记录`"
+      width="min(700px, 96vw)"
+      destroy-on-close
+    >
+      <el-select
+        v-model="detailConversationId"
+        placeholder="选择会话"
+        style="width: 100%; margin-bottom: 16px"
+        :disabled="detailLoading || !detailConversations.length"
+        @change="onDetailConversationChange"
+      >
+        <el-option
+          v-for="c in detailConversations"
+          :key="c.id"
+          :value="c.id"
+          :label="`${c.title} · ${c.persona_name}`"
+        />
+      </el-select>
       <div v-loading="detailLoading" class="detail-body">
         <div v-if="!detailMessages.length && !detailLoading" class="empty-text">暂无消息</div>
-        <div
-          v-for="(m, i) in detailMessages"
-          :key="i"
-          :class="['msg-row', m.role]"
-        >
+        <div v-for="m in detailMessages" :key="m.id" :class="['msg-row', m.role]">
           <div class="msg-bubble">
             <span class="msg-role">{{ m.role === 'user' ? '用户' : 'AI' }}</span>
             <p class="msg-content">{{ m.content }}</p>
           </div>
         </div>
       </div>
+      <el-pagination
+        v-if="detailTotal"
+        class="detail-pagination"
+        small
+        background
+        layout="total, prev, pager, next, sizes"
+        :total="detailTotal"
+        :current-page="detailPage"
+        :page-size="detailPageSize"
+        :page-sizes="[10, 20, 50]"
+        @current-change="onDetailPageChange"
+        @size-change="onDetailSizeChange"
+      />
     </el-dialog>
 
     <!-- Trim dialog -->
-    <el-dialog v-model="trimVisible" :title="`保留聊天记录 — ${trimUsername}`" width="400px" destroy-on-close>
+    <el-dialog
+      v-model="trimVisible"
+      :title="`保留聊天记录 — ${trimUsername}`"
+      width="400px"
+      destroy-on-close
+    >
       <el-form label-width="100px">
         <el-form-item label="保留天数">
           <el-input-number v-model="trimDays" :min="1" :max="365" />
@@ -187,17 +272,51 @@ onMounted(load)
 </template>
 
 <style scoped>
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 16px; }
-.page-header h2 { font-size: 1.3rem; white-space: nowrap; }
-.header-right { display: flex; align-items: center; gap: 12px; }
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+.page-header h2 {
+  font-size: 1.3rem;
+  white-space: nowrap;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-.empty-text { text-align: center; color: var(--color-text-secondary); padding: 48px 0; }
+.empty-text {
+  text-align: center;
+  color: var(--color-text-secondary);
+  padding: 48px 0;
+}
 
-.detail-body { max-height: 500px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.detail-body {
+  max-height: 500px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.detail-pagination {
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
 
-.msg-row { display: flex; }
-.msg-row.user { justify-content: flex-end; }
-.msg-row.ai { justify-content: flex-start; }
+.msg-row {
+  display: flex;
+}
+.msg-row.user {
+  justify-content: flex-end;
+}
+.msg-row.ai {
+  justify-content: flex-start;
+}
 
 .msg-bubble {
   background-color: antiquewhite;
@@ -207,8 +326,14 @@ onMounted(load)
   font-size: 0.88rem;
   line-height: 1.6;
 }
-.msg-row.user .msg-bubble { background: var(--color-primary); color: #fff; }
-.msg-row.ai .msg-bubble { background: var(--color-surface); color: var(--color-text); }
+.msg-row.user .msg-bubble {
+  background: var(--color-primary);
+  color: #fff;
+}
+.msg-row.ai .msg-bubble {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
 
 .msg-role {
   display: block;
@@ -217,7 +342,15 @@ onMounted(load)
   margin-bottom: 4px;
   font-weight: 600;
 }
-.msg-content { white-space: pre-wrap; word-break: break-word; margin: 0; }
+.msg-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
 
-.trim-hint { font-size: 0.82rem; color: var(--color-text-secondary); margin-top: 8px; }
+.trim-hint {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+  margin-top: 8px;
+}
 </style>

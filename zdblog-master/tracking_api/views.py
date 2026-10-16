@@ -1,15 +1,20 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor
+import ipaddress
+import json
+import threading
+from datetime import timedelta
+from functools import lru_cache
+from pathlib import Path
 
-import requests
+from django.conf import settings
 from django.db.models import Max
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from tracking.models import Visitor, Pageview
 from django.core.cache import cache
-from concurrent.futures import as_completed
 
 
 from user.permissions import IsSuperAdmin
@@ -60,200 +65,164 @@ class VisitorDeleteView(APIView):
 class VisitorGeoView(APIView):
     """返回访问者IP地理分布数据（用于地图展示）"""
     permission_classes = [IsAuthenticated, IsSuperAdmin]
-
-    # 每次请求最多查询未缓存IP的数量，防止触发 ip-api.com 免费版频率限制（45次/分钟）
-    MAX_UNCACHED_PER_REQUEST = 30
+    MAX_PUBLIC_IPS = 200
 
     def get(self, request):
         """
-        获取所有访问者的IP地理信息
-        优化点：
-        1. 使用 GROUP BY + MAX(start_time) 替代 DISTINCT，按最近访问时间排序
-        2. 使用线程池并发查询第三方API
-        3. 使用Redis缓存减少重复查询
-        4. 过滤内网IP
-        5. 限制每次请求未缓存IP查询数量，避免超时和频率限制
+        通过项目内的 ip2region xdb 离线库查询最近30天访客地域，不访问第三方服务。
         """
-        # 1. 查询最近活跃的不同IP（按最近访问时间排序，限制200个）
+        # 公网地址过滤必须在展示数量限制之前，避免保留地址测试数据占满名额。
         ip_rows = (
             Visitor.objects
+            .filter(start_time__gte=timezone.now() - timedelta(days=30))
             .values('ip_address')
             .annotate(last_visit=Max('start_time'))
-            .order_by('-last_visit')
-        )[:200]
-        ip_list = [row['ip_address'] for row in ip_rows]
+            .order_by('-last_visit', 'ip_address')
+        )
 
-        # 2. 过滤内网IP和无效IP
+        # 2. 过滤内网、保留地址和无效 IP（同时支持 IPv4/IPv6）
         valid_ips = []
-        for ip in ip_list:
-            if not ip:
+        summary = {
+            'total_ips': 0, 'public_ips': 0, 'excluded_ips': 0,
+            'benchmark_ips': 0, 'invalid_ips': 0,
+        }
+        benchmark_network = ipaddress.ip_network('198.18.0.0/15')
+        for row in ip_rows.iterator(chunk_size=1000):
+            ip = row['ip_address']
+            summary['total_ips'] += 1
+            try:
+                address = ipaddress.ip_address(ip)
+                if not address.is_global:
+                    summary['excluded_ips'] += 1
+                    if address.version == 4 and address in benchmark_network:
+                        summary['benchmark_ips'] += 1
+                    continue
+            except (ValueError, TypeError):
+                summary['invalid_ips'] += 1
                 continue
-            # 过滤内网IP
-            if ip.startswith(('127.', '192.168.', '10.', '172.16.', '172.17.', '172.18.', '172.19.')):
-                continue
-            if ip.startswith('172.2') and int(ip.split('.')[1]) in range(16, 32):
-                continue
-            valid_ips.append(ip)
+            summary['public_ips'] += 1
+            if len(valid_ips) < self.MAX_PUBLIC_IPS:
+                valid_ips.append(ip)
 
-        # 3. 先查缓存，分离已缓存和未缓存的IP
+        # 3. 批量读取缓存，再使用本地 xdb 处理未缓存 IP。
         geo_data = []
         uncached_ips = []
-
+        cache_keys = {ip: f'ip_geo_local_v1_{ip}' for ip in valid_ips}
+        cached_geo = cache.get_many(cache_keys.values()) if cache_keys else {}
         for ip in valid_ips:
-            cache_key = f'ip_geo_v2_{ip}'
-            cached = cache.get(cache_key)
+            cached = cached_geo.get(cache_keys[ip])
 
-            if cached is not None and cached.get('lat') is not None:
-                # 缓存命中，直接使用
-                geo_data.append(cached)
+            if cached is not None:
+                # 成功结果和空字典负缓存都算命中，避免失败 IP 每次刷新都重试
+                if cached.get('lat') is not None:
+                    geo_data.append(cached)
             else:
                 # 需要查询
                 uncached_ips.append(ip)
 
-        # 4. 限制每次请求查询未缓存IP的数量
-        remaining_uncached = 0
-        if uncached_ips:
-            if len(uncached_ips) > self.MAX_UNCACHED_PER_REQUEST:
-                remaining_uncached = len(uncached_ips) - self.MAX_UNCACHED_PER_REQUEST
-                uncached_ips = uncached_ips[:self.MAX_UNCACHED_PER_REQUEST]
-
-            logger.info(
-                f'Fetching geo data for {len(uncached_ips)} uncached IPs'
-                + (f' ({remaining_uncached} remaining for next request)' if remaining_uncached else '')
+        cached_count = len(geo_data)
+        new_entries = {}
+        try:
+            for ip in uncached_ips:
+                result = self._fetch_ip_geo(ip)
+                new_entries[cache_keys[ip]] = result
+                if result.get('lat') is not None and result.get('lon') is not None:
+                    geo_data.append(result)
+        except Exception:
+            logger.exception('Local ip2region database is unavailable')
+            return Response(
+                {'detail': '本地 IP 地域库加载失败，请检查后端依赖和离线数据库文件。'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
-            with ThreadPoolExecutor(max_workers=min(10, len(uncached_ips))) as executor:
-                # 提交所有查询任务
-                future_to_ip = {
-                    executor.submit(self._fetch_ip_geo, ip): ip
-                    for ip in uncached_ips
-                }
-
-                # 收集结果
-                for future in as_completed(future_to_ip):
-                    ip = future_to_ip[future]
-                    try:
-                        result = future.result(timeout=5)
-                        if result and result.get('lat') is not None:
-                            geo_data.append(result)
-                        else:
-                            logger.debug(f'No geo data for IP: {ip}')
-                    except Exception as e:
-                        logger.warning(f'Failed to fetch geo for IP {ip}: {e}')
-
-        # 5. 返回结果
+        if new_entries:
+            cache.set_many(new_entries, 86400)
+        summary['queried_ips'] = len(valid_ips)
+        summary['located_ips'] = len(geo_data)
+        summary['unmapped_ips'] = len(valid_ips) - len(geo_data)
+        summary['limited'] = summary['public_ips'] > len(valid_ips)
+        empty_reason = None
+        if not geo_data:
+            if not summary['total_ips']:
+                empty_reason = 'no_visits'
+            elif not summary['public_ips']:
+                empty_reason = 'no_public_ips'
+            else:
+                empty_reason = 'no_china_locations'
         return Response({
             'points': geo_data,
             'total': len(geo_data),
-            'cached_count': len(geo_data) - min(len(uncached_ips), self.MAX_UNCACHED_PER_REQUEST),
-            'uncached_count': min(len(uncached_ips), self.MAX_UNCACHED_PER_REQUEST) if uncached_ips else 0,
-            'remaining_uncached': remaining_uncached,
+            'cached_count': cached_count,
+            'pending_count': 0,
+            'summary': summary,
+            'empty_reason': empty_reason,
         })
 
     def _fetch_ip_geo(self, ip):
-        """
-        获取单个IP的地理位置信息
-        使用 ip-api.com 免费API
-        """
-        cache_key = f'ip_geo_v2_{ip}'
-
-        # 双重检查缓存（防止并发时重复查询）
-        cached = cache.get(cache_key)
-        if cached is not None and cached.get('lat') is not None:
-            return cached
-
-        try:
-            # 调用第三方API
-            resp = requests.get(
-                f'http://ip-api.com/json/{ip}',
-                params={'lang': 'zh-CN'},
-                timeout=3,  # 降低超时时间到3秒
-            )
-            resp.raise_for_status()
-            data = resp.json()
-
-            if data.get('status') == 'success':
-                # 成功获取数据
-                entry = {
-                    'ip': ip,
-                    'lat': data.get('lat'),
-                    'lon': data.get('lon'),
-                    'city': data.get('city', ''),
-                    'country': data.get('country', ''),
-                    'region': data.get('regionName', ''),
-                    'isp': data.get('isp', ''),
-                }
-                # 缓存24小时
-                cache.set(cache_key, entry, 86400)
-                return entry
-            else:
-                # API返回失败（如私有IP、保留IP等）
-                logger.debug(f'IP-API returned failure for {ip}: {data.get("message", "Unknown error")}')
-                # 失败时缓存空值1小时，避免频繁重试
-                cache.set(cache_key, {}, 3600)
-                return {}
-
-        except requests.Timeout:
-            logger.warning(f'Timeout fetching geo data for IP: {ip}')
-            # 超时时缓存5分钟
-            cache.set(cache_key, {}, 300)
+        """从项目内的 ip2region xdb 文件解析 IP，不发起网络请求。"""
+        ip_version = ipaddress.ip_address(ip).version
+        searcher = _get_ip2region_searcher(ip_version)
+        region_text = searcher.search(ip)
+        if not region_text:
             return {}
 
-        except requests.RequestException as e:
-            logger.warning(f'Request error fetching geo data for IP {ip}: {e}')
-            # 网络错误时缓存5分钟
-            cache.set(cache_key, {}, 300)
+        parts = [part.strip() for part in region_text.split('|')]
+        parts.extend([''] * (5 - len(parts)))
+        country, province, city, isp, country_code = parts[:5]
+
+        # 当前后台地图是中国地图，国外/无效地域没有可展示坐标。
+        if country not in ('中国', 'China'):
             return {}
 
-        except Exception as e:
-            logger.error(f'Unexpected error fetching geo data for IP {ip}: {e}')
-            # 未知错误时缓存10分钟
-            cache.set(cache_key, {}, 600)
+        province = province if province and province != '0' else city
+        coordinates = _province_centers().get(province)
+        if not coordinates:
             return {}
 
-# class VisitorGeoView(APIView):
-#     """返回访问者IP地理分布数据（用于地图展示）"""
-#     permission_classes = [IsAuthenticated, IsSuperAdmin]
-#
-#     def get(self, request):
-#         from django.core.cache import cache
-#
-#         visitors = Visitor.objects.values('ip_address').distinct()
-#         geo_data = []
-#
-#         for v in visitors:
-#             ip = v['ip_address']
-#             if not ip or ip.startswith('127.') or ip.startswith('192.168.') or ip.startswith('10.'):
-#                 continue
-#
-#             cache_key = f'ip_geo_v2_{ip}'
-#             cached = cache.get(cache_key)
-#             if cached is not None:
-#                 if cached.get('lat'):
-#                     geo_data.append(cached)
-#                 continue
-#
-#             try:
-#                 resp = requests.get(
-#                     f'http://ip-api.com/json/{ip}',
-#                     params={'lang': 'zh-CN'},
-#                     timeout=5,
-#                 )
-#                 data = resp.json()
-#                 if data.get('status') == 'success':
-#                     entry = {
-#                         'ip': ip,
-#                         'lat': data.get('lat'),
-#                         'lon': data.get('lon'),
-#                         'city': data.get('city', ''),
-#                         'country': data.get('country', ''),
-#                     }
-#                     cache.set(cache_key, entry, 86400)
-#                     geo_data.append(entry)
-#                 else:
-#                     cache.set(cache_key, {}, 3600)
-#             except Exception as e:
-#                 logger.warning(f'Geo lookup failed for IP {ip}: {e}')
-#                 cache.set(cache_key, {}, 600)
-#
-#         return Response({'points': geo_data})
+        entry = {
+            'ip': ip,
+            'lon': coordinates[0],
+            'lat': coordinates[1],
+            'city': city if city and city != '0' else province,
+            'country': country,
+            'region': province,
+            'isp': isp if isp != '0' else '',
+            'country_code': country_code,
+        }
+        return entry
+
+
+@lru_cache(maxsize=1)
+def _province_centers():
+    path = Path(__file__).with_name('province_centers.json')
+    with path.open(encoding='utf-8') as file:
+        return json.load(file)
+
+
+_ip2region_searchers = {}
+_ip2region_buffers = {}
+_ip2region_lock = threading.Lock()
+
+
+def _get_ip2region_searcher(ip_version):
+    if ip_version in _ip2region_searchers:
+        return _ip2region_searchers[ip_version]
+
+    with _ip2region_lock:
+        if ip_version in _ip2region_searchers:
+            return _ip2region_searchers[ip_version]
+
+        import ip2region.searcher as xdb
+        import ip2region.util as util
+
+        db_path = Path(settings.BASE_DIR).parent / 'models' / 'ip2region' / f'ip2region_v{ip_version}.xdb'
+        if not db_path.is_file():
+            raise FileNotFoundError(f'未找到离线数据库文件：{db_path}')
+
+        util.verify_from_file(str(db_path))
+        buffer = util.load_content_from_file(str(db_path))
+        version = util.IPv4 if ip_version == 4 else util.IPv6
+        searcher = xdb.new_with_buffer(version, buffer)
+        _ip2region_buffers[ip_version] = buffer
+        _ip2region_searchers[ip_version] = searcher
+        return searcher

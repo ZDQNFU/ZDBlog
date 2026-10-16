@@ -31,8 +31,20 @@ class ArticleAdmin:
         :param status: 文章状态，默认为 'draft' (草稿)
         :return: 创建的 Article 实例
         """
-        # 根据标题生成唯一的 slug
-        slug = slugify(title)
+        # 根据标题生成唯一的 slug，当英文重复时，会出现冲突的情况
+        # slug = slugify(title)
+
+        # 生成基础 slug（保留中文）
+        base_slug = slugify(title, allow_unicode=True)
+        slug = base_slug
+
+        # 处理冲突：如果 slug 已存在，添加计数器
+        # __iexact：迁移前 MySQL 是 ci 排序规则，'Git' 与 'git' 算同一个 slug；
+        # 不忽略大小写就会产生两个只差大小写的 slug，URL 上没法区分
+        counter = 1
+        while Article.objects.filter(slug__iexact=slug).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
 
         # 创建文章实例
         article = Article.objects.create(

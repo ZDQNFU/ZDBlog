@@ -59,7 +59,17 @@ const router = createRouter({
     },
     {
       path: '/chats',
-      name: 'chats',
+      redirect: '/chats/history',
+    },
+    {
+      path: '/chats/personas',
+      name: 'chat-personas',
+      component: () => import('@/views/ChatPersonaManageView.vue'),
+      meta: { requiresAuth: true, layout: 'admin' },
+    },
+    {
+      path: '/chats/history',
+      name: 'chat-history',
       component: () => import('@/views/ChatManageView.vue'),
       meta: { requiresAuth: true, layout: 'admin' },
     },
@@ -84,23 +94,25 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, from, next) => {
+// vue-router 5 起改用返回值：返回 false/路由地址即拦截，返回 undefined 表示放行
+router.beforeEach((to) => {
   const token = localStorage.getItem('access_token')
   const user = JSON.parse(localStorage.getItem('user') || 'null')
   if (to.meta.requiresAuth && !token) {
-    next('/login')
-  } else if (to.meta.requiresAuth && !user?.is_staff && !user?.is_superuser) {
+    return '/login'
+  }
+  if (to.meta.requiresAuth && !user?.is_staff && !user?.is_superuser) {
     // 非 staff / 非超级管理员无权访问后台
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('user')
-    next('/login')
-  } else if (to.meta.superadmin && !user?.is_superuser) {
-    next('/')
-  } else if (to.meta.guest && token) {
-    next('/')
-  } else {
-    next()
+    return '/login'
+  }
+  if (to.meta.superadmin && !user?.is_superuser) {
+    return '/'
+  }
+  if (to.meta.guest && token) {
+    return '/'
   }
 })
 

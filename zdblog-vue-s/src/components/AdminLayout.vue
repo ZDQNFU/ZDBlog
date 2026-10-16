@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/composables/useTheme'
@@ -10,7 +10,15 @@ const auth = useAuthStore()
 const { isDark, toggle: toggleTheme } = useTheme()
 
 const collapsed = ref(false)
-const sidebarWidth = computed(() => collapsed.value ? '64px' : '200px')
+const chatMenuExpanded = ref(false)
+watch(
+  () => route.path,
+  (path) => {
+    chatMenuExpanded.value = path.startsWith('/chats')
+  },
+  { immediate: true },
+)
+const sidebarWidth = computed(() => (collapsed.value ? '64px' : '200px'))
 
 const baseMenuItems = [
   { path: '/', icon: 'DataAnalysis', label: '首页' },
@@ -20,7 +28,15 @@ const baseMenuItems = [
   { path: '/comments', icon: 'ChatLineSquare', label: '评论管理' },
   { path: '/messages', icon: 'ChatLineRound', label: '留言管理' },
   { path: '/links', icon: 'Link', label: '资源管理' },
-  { path: '/chats', icon: 'ChatDotSquare', label: '聊天管理' },
+  {
+    path: '/chats',
+    icon: 'ChatDotSquare',
+    label: '聊天管理',
+    children: [
+      { path: '/chats/personas', label: '人物管理' },
+      { path: '/chats/history', label: '聊天记录' },
+    ],
+  },
 ]
 
 const menuItems = computed(() => {
@@ -58,16 +74,44 @@ function handleLogout() {
         <span v-else class="sidebar-logo-short">ZB</span>
       </div>
       <nav class="sidebar-nav">
-        <router-link
-          v-for="item in menuItems"
-          :key="item.path"
-          :to="item.path"
-          :class="['nav-item', { active: isActive(item.path) }]"
-          :title="collapsed ? item.label : ''"
-        >
-          <el-icon><component :is="item.icon" /></el-icon>
-          <span v-if="!collapsed" class="nav-label">{{ item.label }}</span>
-        </router-link>
+        <div v-for="item in menuItems" :key="item.path" class="nav-group">
+          <button
+            v-if="item.children"
+            class="nav-item nav-group-toggle"
+            :class="{ active: isActive(item.path) }"
+            :title="collapsed ? item.label : ''"
+            :aria-expanded="!collapsed && chatMenuExpanded"
+            @click="
+              collapsed ? router.push('/chats/history') : (chatMenuExpanded = !chatMenuExpanded)
+            "
+          >
+            <el-icon><component :is="item.icon" /></el-icon>
+            <span v-if="!collapsed" class="nav-label">{{ item.label }}</span>
+            <el-icon v-if="!collapsed" class="submenu-chevron">
+              <ArrowDown v-if="chatMenuExpanded" /><ArrowRight v-else />
+            </el-icon>
+          </button>
+          <router-link
+            v-else
+            :to="item.path"
+            :class="['nav-item', { active: isActive(item.path) }]"
+            :title="collapsed ? item.label : ''"
+          >
+            <el-icon><component :is="item.icon" /></el-icon>
+            <span v-if="!collapsed" class="nav-label">{{ item.label }}</span>
+          </router-link>
+          <div v-if="item.children && !collapsed && chatMenuExpanded" class="nav-submenu">
+            <router-link
+              v-for="child in item.children"
+              :key="child.path"
+              :to="child.path"
+              class="nav-subitem"
+              :class="{ active: route.path === child.path }"
+            >
+              <span class="submenu-dot"></span>{{ child.label }}
+            </router-link>
+          </div>
+        </div>
       </nav>
     </aside>
 
@@ -82,20 +126,44 @@ function handleLogout() {
           <span class="header-title">管理后台</span>
         </div>
         <div class="header-right">
-          <button class="theme-toggle-btn" @click="toggleTheme" :title="isDark ? '切换亮色模式' : '切换暗黑模式'">
-            <svg v-if="isDark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="5"/>
-              <line x1="12" y1="1" x2="12" y2="3"/>
-              <line x1="12" y1="21" x2="12" y2="23"/>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-              <line x1="1" y1="12" x2="3" y2="12"/>
-              <line x1="21" y1="12" x2="23" y2="12"/>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          <button
+            class="theme-toggle-btn"
+            @click="toggleTheme"
+            :title="isDark ? '切换亮色模式' : '切换暗黑模式'"
+          >
+            <svg
+              v-if="isDark"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="5" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+              <line x1="1" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="12" x2="23" y2="12" />
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
             </svg>
-            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            <svg
+              v-else
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
             </svg>
           </button>
           <span class="header-user">{{ auth.user?.username }}</span>
@@ -134,7 +202,7 @@ function handleLogout() {
 
 .sidebar-header {
   padding: 20px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   text-align: center;
   white-space: nowrap;
 }
@@ -164,13 +232,15 @@ function handleLogout() {
   padding: 12px 20px;
   font-size: 0.9rem;
   color: #aaa;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   cursor: pointer;
   white-space: nowrap;
   text-decoration: none;
 }
 .nav-item:hover {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   color: #ddd;
 }
 .nav-item.active {
@@ -179,6 +249,43 @@ function handleLogout() {
 }
 .nav-label {
   overflow: hidden;
+}
+.nav-group-toggle {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.submenu-chevron {
+  margin-left: auto;
+  font-size: 12px;
+}
+.nav-submenu {
+  padding: 2px 0 6px 20px;
+  background: rgba(0, 0, 0, 0.12);
+}
+.nav-subitem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 5px;
+  color: #aaa;
+  font-size: 0.84rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.nav-subitem:hover,
+.nav-subitem.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+.submenu-dot {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 5px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 /* ---- Main area ---- */
@@ -252,7 +359,10 @@ function handleLogout() {
   color: var(--color-text-secondary);
   font-size: 0.85rem;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
 }
 .logout-btn:hover {
   color: #f56c6c;
@@ -271,7 +381,10 @@ function handleLogout() {
   background: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
   flex-shrink: 0;
 }
 .theme-toggle-btn:hover {
@@ -293,15 +406,30 @@ function handleLogout() {
   .sidebar {
     width: 64px !important;
   }
-  .nav-item { justify-content: center; padding: 12px 0; }
-  .sidebar-header { padding: 16px 0; }
-  .sidebar-logo-short { display: block; }
-  .toggle-btn { display: none; }
-  .top-header { padding: 0 12px; }
-  .main-content { padding: 16px; }
+  .nav-item {
+    justify-content: center;
+    padding: 12px 0;
+  }
+  .sidebar-header {
+    padding: 16px 0;
+  }
+  .sidebar-logo-short {
+    display: block;
+  }
+  .toggle-btn {
+    display: none;
+  }
+  .top-header {
+    padding: 0 12px;
+  }
+  .main-content {
+    padding: 16px;
+  }
 }
 
 @media (max-width: 480px) {
-  .header-user { display: none; }
+  .header-user {
+    display: none;
+  }
 }
 </style>

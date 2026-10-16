@@ -1,8 +1,8 @@
 #创建数据库
-CREATE DATABASE zblog CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE zdblog CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- 使用数据库（请提前创建好 zblog）
-USE zblog;
+-- 使用数据库（请提前创建好 zdblog）
+USE zdblog;
 
 -- ----------------------------
 -- 1. 分类表

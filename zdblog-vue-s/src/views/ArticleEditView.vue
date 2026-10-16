@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
-import { fetchArticle, createArticle, updateArticle, uploadImage } from '@/api/articles'
+import { fetchArticle, createArticle, updateArticle, uploadImage, generateArticleSummary } from '@/api/articles'
 import { fetchCategories } from '@/api/categories'
 import { fetchTags } from '@/api/tags'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -20,6 +20,7 @@ const isEdit = computed(() => !!editId.value)
 
 const loading = ref(false)
 const saving = ref(false)
+const generatingSummary = ref(false)
 const categories = ref([])
 const tags = ref([])
 const showMeta = ref(true)
@@ -84,6 +85,28 @@ async function handleSave() {
   }
 }
 
+async function handleGenerateSummary() {
+  const content_md = form.value.content_md.trim()
+  if (!content_md) {
+    ElMessage.warning('请先填写文章正文')
+    return
+  }
+
+  generatingSummary.value = true
+  try {
+    const { data } = await generateArticleSummary({
+      title: form.value.title,
+      content_md,
+    })
+    form.value.summary = data.summary
+    ElMessage.success('摘要已生成，可以继续修改')
+  } catch (e) {
+    ElMessage.error(e.response?.data?.detail || 'AI 摘要生成失败，请稍后重试')
+  } finally {
+    generatingSummary.value = false
+  }
+}
+
 async function handleUploadImg(files, callback) {
   try {
     const urls = []
@@ -109,7 +132,10 @@ function goBack() {
   }
 }
 
-onMounted(() => { loadOptions(); loadArticle() })
+onMounted(() => {
+  loadOptions()
+  loadArticle()
+})
 </script>
 
 <template>
@@ -151,8 +177,23 @@ onMounted(() => { loadOptions(); loadArticle() })
           </div>
 
           <div class="meta-field">
-            <label>摘要</label>
-            <el-input v-model="form.summary" type="textarea" :rows="3" placeholder="文章摘要" />
+            <div class="meta-field-heading">
+              <label>摘要</label>
+              <el-button
+                size="small"
+                :loading="generatingSummary"
+                :disabled="!form.content_md.trim()"
+                @click="handleGenerateSummary"
+              >AI 生成</el-button>
+            </div>
+            <el-input
+              v-model="form.summary"
+              type="textarea"
+              :rows="3"
+              maxlength="300"
+              show-word-limit
+              placeholder="文章摘要"
+            />
           </div>
 
           <div class="meta-field">
@@ -262,6 +303,17 @@ onMounted(() => { loadOptions(); loadArticle() })
   font-weight: 500;
   color: var(--el-text-color-secondary);
   margin-bottom: 5px;
+}
+
+.meta-field-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.meta-field-heading label {
+  margin-bottom: 0;
 }
 
 .meta-field .el-select {

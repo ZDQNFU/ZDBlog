@@ -224,7 +224,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   height: 30%;
-  background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.25) 40%, var(--color-bg) 100%);
+  background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.25) 80%, var(--color-bg) 100%);
   z-index: 1;
   pointer-events: none;
 }

@@ -63,7 +63,8 @@ class EmailVerificationSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
     def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
+        # __iexact：迁移前 MySQL 是 ci 排序规则，'A@x.com' 与 'a@x.com' 视为同一邮箱
+        if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError(_('该邮箱已被注册'))
         return value
 
@@ -76,12 +77,15 @@ class RegisterSerializer(serializers.Serializer):
     verification_key = serializers.CharField()
 
     def validate_username(self, value):
-        if User.objects.filter(username=value).exists():
+        # __iexact：迁移前 MySQL 是 ci 排序规则，'Admin' 与 'admin' 算同一个用户名；
+        # 换成 PostgreSQL 后不显式忽略大小写，就会放行只差大小写的重名账号
+        if User.objects.filter(username__iexact=value).exists():
             raise serializers.ValidationError(_('用户名已存在'))
         return value
 
     def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
+        # __iexact：同上，邮箱也保持不区分大小写
+        if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError(_('该邮箱已被注册'))
         return value
 

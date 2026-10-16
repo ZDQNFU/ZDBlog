@@ -2,6 +2,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchArticles, deleteArticle } from '@/api/articles'
+import ArticleMarkdownImport from '@/components/ArticleMarkdownImport.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 
@@ -78,6 +79,7 @@ onMounted(() => { load() })
           @input="onSearchChange"
           @clear="load"
         />
+        <ArticleMarkdownImport @saved="load" />
         <el-button type="primary" @click="router.push('/articles/edit')">新建文章</el-button>
       </div>
     </div>

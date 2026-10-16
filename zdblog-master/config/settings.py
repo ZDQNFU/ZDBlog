@@ -42,9 +42,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    'django.contrib.postgres',
+    'rag.apps.RagConfig',
     'corsheaders',
     'rest_framework',
     'tracking',   # django-tracking2 访问日志
+    'tracking_api',  # 访问日志 API 与查询索引迁移
     'article',    # 注册自己的应用，文章
     'user',       # 用户认证应用
     'link',       # 资源链接应用
@@ -124,13 +127,27 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.mysql'),
-        'NAME': os.getenv('DB_NAME', 'zblog'),
+        'NAME': os.getenv('DB_NAME', 'zdblog'),
         'USER': os.getenv('DB_USER', 'root'),
         'PASSWORD': os.getenv('DB_PASSWORD', ''),
         'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '3306'),
     }
 }
+
+# RAG defaults are loaded after .env. Vector dimensions are a schema constant.
+from rag.config import *  # noqa: F403
+CHAT_ARTICLE_TIME_ZONE = os.getenv('CHAT_ARTICLE_TIME_ZONE', 'Asia/Shanghai')
+
+
+# Authentication backends
+# 用户名查找忽略大小写。迁移到 PostgreSQL 之前，库里是 MySQL 的 utf8mb4_general_ci
+# 排序规则，比较默认不区分大小写；PostgreSQL 默认精确匹配，沿用 ModelBackend 的话
+# 用户 'ZDQNFU' 用 'zdqnfu' 就登不进来了。
+
+AUTHENTICATION_BACKENDS = [
+    'user.auth_backends.CaseInsensitiveModelBackend',
+]
 
 
 # Password validation

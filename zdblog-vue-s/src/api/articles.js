@@ -14,6 +14,10 @@ export function createArticle(data) {
   return api.post(`${BASE}/`, data)
 }
 
+export function generateArticleSummary(data) {
+  return api.post(`${BASE}/generate-summary/`, data)
+}
+
 export function updateArticle(id, data) {
   return api.patch(`${BASE}/${id}/`, data)
 }

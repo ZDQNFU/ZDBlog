@@ -4,6 +4,7 @@ from article.views.c_views import ArticleListView, ArticleDetailView, ArticleVer
 from article.views.s_views import (
     SArticleListCreateView,
     SArticleRetrieveUpdateDestroyView,
+    SArticleSummaryGenerateView,
     STagListCreateView,
     STagRetrieveUpdateDestroyView,
     SCategoryListCreateView,
@@ -32,6 +33,7 @@ urlpatterns = [
     # ================= S端（管理接口） =================
     # 文章 CRUD
     path('s/articles/', SArticleListCreateView.as_view(), name='s_article_list_create'),
+    path('s/articles/generate-summary/', SArticleSummaryGenerateView.as_view(), name='s_article_generate_summary'),
     path('s/articles/<str:pk>/', SArticleRetrieveUpdateDestroyView.as_view(), name='s_article_detail'),
 
     # 标签 CRUD

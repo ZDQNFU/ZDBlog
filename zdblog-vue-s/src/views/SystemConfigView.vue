@@ -14,6 +14,7 @@ let searchTimer = null
 
 const detailVisible = ref(false)
 const detailRow = ref(null)
+const helpVisible = ref(false)
 
 const dialogVisible = ref(false)
 const dialogTitle = ref('新建配置')
@@ -26,6 +27,27 @@ const valueTypes = [
   { label: 'int', value: 'int' },
   { label: 'bool', value: 'bool' },
   { label: 'json', value: 'json' },
+]
+
+const helpItems = [
+  {
+    key: 'GITHUB_TOKEN',
+    title: 'GitHub 访问令牌',
+    description: '用于把文章图片上传到 GitHub。请填写对目标仓库有写入权限的 Personal Access Token，并开启“加密存储”。',
+    example: 'GitHub 生成的访问令牌',
+  },
+  {
+    key: 'GITHUB_ARTICLE_PATH',
+    title: '文章图片仓库目录',
+    description: '填写图片上传目标仓库的目录地址，需要包含 owner、仓库名、分支和目录。',
+    example: 'https://github.com/owner/repo/tree/main/article',
+  },
+  {
+    key: 'GITHUB_USER_PATH',
+    title: 'GitHub 用户路径',
+    description: '该配置目前只登记在数据库中，现有代码没有读取它；修改后暂不会影响功能。',
+    example: '当前未使用',
+  },
 ]
 
 async function load() {
@@ -133,6 +155,10 @@ onMounted(load)
           @input="onSearchChange"
           @clear="load"
         />
+        <el-button @click="helpVisible = true">
+          <el-icon><QuestionFilled /></el-icon>
+          <span>获取帮助</span>
+        </el-button>
         <el-button type="primary" @click="openDialog()">新建配置</el-button>
       </div>
     </div>
@@ -206,6 +232,31 @@ onMounted(load)
       </el-descriptions>
     </el-dialog>
 
+    <el-dialog
+      v-model="helpVisible"
+      title="系统配置帮助"
+      width="min(580px, calc(100vw - 32px))"
+      destroy-on-close
+    >
+      <div class="help-content">
+        <p class="help-intro">目前数据库中登记了以下 3 项配置。键名需与列表完全一致，按说明填写对应的值。</p>
+        <div class="help-list">
+          <section v-for="item in helpItems" :key="item.key" class="help-item">
+            <div class="help-item-heading">
+              <strong>{{ item.title }}</strong>
+              <el-tag size="small" effect="plain">{{ item.key }}</el-tag>
+            </div>
+            <p>{{ item.description }}</p>
+            <div class="help-example"><span>填写示例</span><code>{{ item.example }}</code></div>
+          </section>
+        </div>
+        <div class="help-note">
+          <el-icon><InfoFilled /></el-icon>
+          <span>访问令牌属于敏感信息，保存时请开启加密存储。不要把令牌发给他人或填写到公开内容中。</span>
+        </div>
+      </div>
+    </el-dialog>
+
     <!-- Edit dialog -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="550px" destroy-on-close>
       <el-form :model="form" label-width="80px">
@@ -258,4 +309,17 @@ onMounted(load)
   --el-button-border-color: #d4952e;
   --el-button-text-color: #fff;
 }
+
+.help-content { color: var(--color-text); }
+.help-intro { margin-bottom: 16px; color: var(--color-text-secondary); font-size: .9rem; line-height: 1.7; }
+.help-list { display: grid; gap: 10px; }
+.help-item { padding: 14px 15px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-bg); }
+.help-item-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.help-item-heading strong { font-size: .9rem; }
+.help-item p { margin-top: 9px; color: var(--color-text-secondary); font-size: .82rem; line-height: 1.65; }
+.help-example { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: .76rem; }
+.help-example span { color: var(--color-text-secondary); }
+.help-example code { overflow-wrap: anywhere; color: var(--color-primary); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.help-note { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; padding: 11px 12px; border-radius: 7px; background: color-mix(in srgb, var(--color-primary) 9%, var(--color-surface)); color: var(--color-text-secondary); font-size: .78rem; line-height: 1.6; }
+.help-note .el-icon { flex: 0 0 auto; margin-top: 2px; color: var(--color-primary); }
 </style>

@@ -88,7 +88,8 @@ function formatDate(dateStr) {
   left: 0;
   right: 0;
   height: 40%;
-  background: linear-gradient(to bottom, transparent 0%, var(--color-surface) 100%);
+  /* 设置顶部到底部的渐变过渡 */
+  background: linear-gradient(to bottom, transparent 80%, var(--color-surface) 100%);
   pointer-events: none;
 }
 .card-cover img {

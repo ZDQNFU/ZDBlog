@@ -6,7 +6,7 @@ const hitokoto = ref(null)
 const hitokotoLoading = ref(true)
 
 function getRunningDays() {
-  const start = new Date('2025-07-01')
+  const start = new Date('2026-06-01')
   const now = new Date()
   return Math.floor((now - start) / (1000 * 60 * 60 * 24))
 }
@@ -50,6 +50,9 @@ onMounted(() => {
           </p>
         </template>
       </div>
+    </div>
+    <div class="footer-inner" style="margin-top: 12px; justify-content: center;">
+      <p>Copyright © 2025 ZDQNFU. | <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">皖ICP备2024030355号</a></p>
     </div>
   </footer>
 </template>

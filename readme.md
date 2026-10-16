@@ -2,6 +2,8 @@
 
 基于 Django + Vue3 构建的个人博客系统，包含博客前台、管理后台、AI 聊天机器人和资源分享功能。
 
+Docker 部署步骤见 [DOCKER.md](DOCKER.md)。
+
 ## 技术栈
 
 ### 后端

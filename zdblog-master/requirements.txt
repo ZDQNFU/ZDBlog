@@ -4,13 +4,15 @@ djangorestframework==3.16.0
 djangorestframework-simplejwt==5.5.1
 django-cors-headers==4.9.0
 django-tracking2==0.5.1
-mysqlclient==2.2.8
+psycopg[binary]==3.3.6
+pgvector==0.5.0
 uuid6==2025.0.1
 langchain==1.3.0
 langchain_community==0.4.1
 openai==2.36.0
 langchain-openai==1.2.1
-geocoder==1.38.1
+langchain-text-splitters==1.1.2
+py-ip2region==3.0.4
 openmeteo-requests==1.7.5
 langgraph-checkpoint-sqlite==3.1.0
 python-vlc==3.0.21203

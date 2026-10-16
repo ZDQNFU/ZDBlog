@@ -1,8 +1,10 @@
 <script setup>
-import { ref, onMounted, nextTick, watch, onUnmounted } from 'vue'
+import { ref, computed, onMounted, nextTick, watch, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { fetchStats } from '@/api/auth'
 import { fetchVisitorGeo } from '@/api/tracking'
 import { useTheme } from '@/composables/useTheme'
+import ArticleMarkdownImport from '@/components/ArticleMarkdownImport.vue'
 import { Bar, Pie, Doughnut, Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -17,10 +19,35 @@ echarts.registerMap('china', chinaGeoJSON)
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, ArcElement, Filler)
 
 const { isDark } = useTheme()
+const router = useRouter()
+const todayLabel = computed(() => new Intl.DateTimeFormat('zh-CN', {
+  year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',
+}).format(new Date()))
 
 const stats = ref(null)
 const loading = ref(false)
 const geoData = ref([])
+const geoLoading = ref(true)
+const geoError = ref(false)
+const geoErrorDetail = ref('')
+const geoSummary = ref({})
+const geoEmptyReason = ref(null)
+const geoEmptyTitle = computed(() => {
+  if (geoEmptyReason.value === 'no_public_ips') return '近 30 日没有可定位的公网访客 IP'
+  if (geoEmptyReason.value === 'no_china_locations') return '近 30 日暂无可展示的国内地域'
+  return '近 30 日暂无访客记录'
+})
+const geoEmptyDescription = computed(() => {
+  const summary = geoSummary.value
+  if (geoEmptyReason.value === 'no_public_ips') {
+    const testHint = summary.benchmark_ips ? `，其中 ${summary.benchmark_ips} 个为性能测试保留地址` : ''
+    return `检测到 ${summary.total_ips || 0} 个内网、保留或无效 IP${testHint}；这些地址没有真实公网地域。`
+  }
+  if (geoEmptyReason.value === 'no_china_locations') {
+    return `已查询 ${summary.queried_ips || 0} 个公网 IP，离线库未返回可在中国地图展示的省份。`
+  }
+  return '公网访客访问后将在地图上显示。'
+})
 const geoChartRef = ref(null)
 let geoChart = null
 
@@ -59,14 +86,27 @@ watch(stats, (val) => {
 async function load() {
   loading.value = true
   try {
-    const [statsRes, geoRes] = await Promise.all([
-      fetchStats(),
-      fetchVisitorGeo().catch(() => ({ data: { points: [] } })),
-    ])
+    const statsRes = await fetchStats()
     stats.value = statsRes.data
-    geoData.value = geoRes.data.points || []
   } finally {
     loading.value = false
+  }
+}
+
+async function loadGeo() {
+  geoLoading.value = true
+  geoError.value = false
+  geoErrorDetail.value = ''
+  try {
+    const { data } = await fetchVisitorGeo()
+    geoData.value = data.points || []
+    geoSummary.value = data.summary || {}
+    geoEmptyReason.value = data.empty_reason || null
+  } catch (error) {
+    geoError.value = true
+    geoErrorDetail.value = error.response?.data?.detail || '请求未成功，请稍后重试。'
+  } finally {
+    geoLoading.value = false
   }
 }
 
@@ -139,15 +179,33 @@ watch(isDark, () => {
   if (geoData.value.length) initGeoChart()
 })
 
-const chartOptions = {
+const chartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
-  plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, pointStyleWidth: 8 } } },
+  color: isDark.value ? '#a9b8cc' : '#68778b',
+  scales: {
+    x: { ticks: { color: isDark.value ? '#91a2b8' : '#77859a' }, grid: { color: isDark.value ? 'rgba(137,160,190,.10)' : 'rgba(84,105,132,.10)' } },
+    y: { ticks: { color: isDark.value ? '#91a2b8' : '#77859a' }, grid: { color: isDark.value ? 'rgba(137,160,190,.10)' : 'rgba(84,105,132,.10)' } },
+  },
+  plugins: {
+    legend: { position: 'bottom', labels: { color: isDark.value ? '#a9b8cc' : '#68778b', padding: 20, usePointStyle: true, pointStyleWidth: 8 } },
+    tooltip: { backgroundColor: isDark.value ? '#101a29' : '#17263a', titleColor: '#fff', bodyColor: '#d8e4f1', padding: 12, cornerRadius: 8 },
+  },
+}))
+
+onMounted(() => {
+  load()
+  loadGeo()
+})
+
+function resizeGeoChart() {
+  geoChart?.resize()
 }
 
-onMounted(load)
+window.addEventListener('resize', resizeGeoChart)
 
 onUnmounted(() => {
+  window.removeEventListener('resize', resizeGeoChart)
   if (geoChart) { geoChart.dispose(); geoChart = null }
 })
 
@@ -166,15 +224,39 @@ const statCards = [
 
 <template>
   <div class="dashboard">
-    <h2 class="page-title">管理首页</h2>
+    <section class="dashboard-intro">
+      <div class="intro-copy">
+        <div class="eyebrow"><span class="eyebrow-line"></span> ZDBLOG / CONTROL DECK</div>
+        <h1>内容观测台<span class="title-period">.</span></h1>
+        <p>内容、访问与互动数据的实时概览</p>
+      </div>
+      <div class="intro-side">
+        <div class="date-stamp"><span class="date-dot"></span>{{ todayLabel }}</div>
+        <div class="quick-actions">
+          <ArticleMarkdownImport variant="dashboard" />
+          <button class="action-secondary" @click="router.push('/articles')">
+            <el-icon><Document /></el-icon>文章管理
+          </button>
+          <button class="action-primary" @click="router.push('/articles/edit')">
+            <el-icon><Plus /></el-icon>新建文章
+          </button>
+        </div>
+      </div>
+      <div class="intro-orbit orbit-one"></div>
+      <div class="intro-orbit orbit-two"></div>
+    </section>
 
     <div v-if="loading" class="loading-skeleton">
-      <div v-for="i in 4" :key="i" class="skeleton-card"></div>
+      <div v-for="i in 9" :key="i" class="skeleton-card"></div>
     </div>
 
     <template v-else-if="stats">
-      <!-- Stats cards row -->
-      <section class="stats-row">
+      <section class="section-block metrics-block">
+        <div class="section-heading">
+          <div><span class="section-kicker">SYSTEM SNAPSHOT</span><h2>核心指标</h2></div>
+          <span class="live-state"><i></i> 数据已同步</span>
+        </div>
+        <div class="stats-row">
         <div
           v-for="card in statCards"
           :key="card.key"
@@ -205,18 +287,38 @@ const statCards = [
             <span :ref="el => countRefs[card.key] = el" class="stat-num">0</span>
             <span class="stat-label">{{ card.label }}</span>
           </div>
+          <span class="stat-index">{{ String(statCards.indexOf(card) + 1).padStart(2, '0') }}</span>
+        </div>
         </div>
       </section>
 
-      <!-- Map + Status chart row -->
-      <section class="dual-row">
+      <section class="section-block insights-block">
+        <div class="section-heading">
+          <div><span class="section-kicker">AUDIENCE / CONTENT</span><h2>访问与内容</h2></div>
+          <span class="section-caption">基于近期站点数据</span>
+        </div>
+        <div class="dual-row">
         <div class="panel map-panel">
-          <h3 class="panel-title">访问者 IP 来源分布 ({{ geoData.length }})</h3>
+          <div class="panel-heading">
+            <div><span class="panel-code">01 / GEO NETWORK · 30 DAYS</span><h3 class="panel-title">近 30 日访客地域分布</h3></div>
+            <span class="panel-count">{{ geoData.length }} <small>个来源点</small></span>
+          </div>
           <div v-if="geoData.length" class="map-container" ref="geoChartRef"></div>
-          <div v-else class="map-empty">暂无访问来源数据</div>
+          <div v-else class="map-empty">
+            <span class="empty-mark">⌁</span>
+            <span v-if="geoLoading">正在查询近 30 日访客地域…</span>
+            <span v-else-if="geoError">访客地域暂时无法加载</span>
+            <span v-else>{{ geoEmptyTitle }}</span>
+            <small v-if="geoError">{{ geoErrorDetail }}</small>
+            <small v-if="geoError"><button class="geo-retry" type="button" @click="loadGeo">点击重试</button></small>
+            <small v-else-if="geoLoading">正在读取本地地域库</small>
+            <small v-else>{{ geoEmptyDescription }}</small>
+          </div>
         </div>
         <div class="panel chart-panel">
-          <h3 class="panel-title">文章状态分布</h3>
+          <div class="panel-heading">
+            <div><span class="panel-code">02 / CONTENT MIX</span><h3 class="panel-title">文章状态分布</h3></div>
+          </div>
           <div class="chart-wrapper">
             <Doughnut
               :data="{
@@ -232,12 +334,17 @@ const statCards = [
             />
           </div>
         </div>
+        </div>
       </section>
 
-      <!-- Charts grid -->
-      <section class="charts-grid">
+      <section class="section-block analytics-block">
+        <div class="section-heading">
+          <div><span class="section-kicker">PUBLISHING ANALYTICS</span><h2>内容分析</h2></div>
+          <span class="section-caption">分类、标签与发布节奏</span>
+        </div>
+        <div class="charts-grid">
         <div class="panel chart-panel">
-          <h3 class="panel-title">标签文章数（Top 10）</h3>
+          <div class="panel-heading"><div><span class="panel-code">03 / TAG RANKING</span><h3 class="panel-title">标签文章数 <small>TOP 10</small></h3></div></div>
           <div class="chart-wrapper">
             <Bar
               :data="{
@@ -252,13 +359,13 @@ const statCards = [
                   borderSkipped: false,
                 }]
               }"
-              :options="{ ...chartOptions, plugins: { legend: { display: false } } }"
+              :options="{ ...chartOptions, plugins: { ...chartOptions.plugins, legend: { display: false } } }"
             />
           </div>
         </div>
 
         <div class="panel chart-panel">
-          <h3 class="panel-title">分类文章数</h3>
+          <div class="panel-heading"><div><span class="panel-code">04 / CATEGORY MIX</span><h3 class="panel-title">分类文章数</h3></div></div>
           <div class="chart-wrapper">
             <Pie
               :data="{
@@ -275,7 +382,7 @@ const statCards = [
         </div>
 
         <div class="panel chart-panel" v-if="stats.monthly_trend?.length">
-          <h3 class="panel-title">近6月发布趋势</h3>
+          <div class="panel-heading"><div><span class="panel-code">05 / PUBLISHING PACE</span><h3 class="panel-title">近 6 月发布趋势</h3></div></div>
           <div class="chart-wrapper">
             <Line
               :data="{
@@ -306,8 +413,9 @@ const statCards = [
         </div>
 
         <div class="panel chart-panel" v-else>
-          <h3 class="panel-title">近6月发布趋势</h3>
+          <div class="panel-heading"><div><span class="panel-code">05 / PUBLISHING PACE</span><h3 class="panel-title">近 6 月发布趋势</h3></div></div>
           <div class="chart-empty">暂无数据</div>
+        </div>
         </div>
       </section>
     </template>
@@ -315,177 +423,107 @@ const statCards = [
 </template>
 
 <style scoped>
-.dashboard { padding-bottom: 32px; }
+.dashboard { --dash-accent: #2e83d5; --dash-cyan: #25b8c9; --dash-line: color-mix(in srgb, var(--color-border) 78%, transparent); padding-bottom: 36px; }
+.dashboard-intro {
+  position: relative; isolation: isolate; overflow: hidden; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
+  min-height: 190px; margin-bottom: 30px; padding: 32px 36px; border: 1px solid var(--dash-line); border-radius: 14px;
+  background: linear-gradient(112deg, color-mix(in srgb, var(--color-surface) 96%, #dceeff) 0%, var(--color-surface) 57%, color-mix(in srgb, var(--color-surface) 88%, #bcecf0) 100%);
+  box-shadow: 0 10px 30px rgba(27, 59, 91, .055);
+}
+.dashboard-intro::before { content: ''; position: absolute; z-index: -1; inset: 0; opacity: .32; background-image: linear-gradient(rgba(63, 132, 185, .08) 1px, transparent 1px), linear-gradient(90deg, rgba(63, 132, 185, .08) 1px, transparent 1px); background-size: 28px 28px; mask-image: linear-gradient(90deg, transparent, #000 48%, #000); }
+.dashboard-intro::after { content: ''; position: absolute; z-index: -1; right: 16%; top: -165px; width: 360px; height: 360px; border: 1px solid rgba(46, 131, 213, .16); border-radius: 50%; box-shadow: 0 0 0 24px rgba(46, 131, 213, .025), 0 0 0 56px rgba(46, 131, 213, .02); }
+.intro-copy, .intro-side { position: relative; z-index: 1; }
+.eyebrow, .section-kicker, .panel-code { color: var(--color-text-secondary); font-size: .67rem; font-weight: 700; letter-spacing: .13em; }
+.eyebrow { display: flex; align-items: center; gap: 9px; color: var(--dash-accent); }
+.eyebrow-line { width: 20px; height: 1px; background: currentColor; }
+.intro-copy h1 { margin: 13px 0 8px; color: var(--color-text); font-size: clamp(1.8rem, 3vw, 2.45rem); line-height: 1.12; font-weight: 720; letter-spacing: -.045em; }
+.title-period { color: var(--dash-cyan); }
+.intro-copy p { color: var(--color-text-secondary); font-size: .93rem; letter-spacing: .015em; }
+.intro-side { display: flex; flex-direction: column; align-items: flex-end; gap: 20px; }
+.date-stamp { display: flex; align-items: center; gap: 8px; color: var(--color-text-secondary); font-size: .8rem; }
+.date-dot, .live-state i { width: 7px; height: 7px; border-radius: 50%; background: #43b982; box-shadow: 0 0 0 4px rgba(67,185,130,.12); }
+.quick-actions { display: flex; gap: 9px; }
+.quick-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 37px; padding: 0 13px; border: 1px solid var(--dash-line); border-radius: 7px; font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer; transition: .18s ease; }
+.action-secondary { color: var(--color-text); background: var(--color-surface); }
+.action-secondary:hover { border-color: var(--dash-accent); color: var(--dash-accent); }
+.action-primary { color: #fff; background: var(--dash-accent); border-color: var(--dash-accent) !important; box-shadow: 0 5px 14px rgba(46,131,213,.2); }
+.action-primary:hover { background: #216fb9; transform: translateY(-1px); }
+.intro-orbit { display: none; }
+.section-block { margin-top: 28px; }
+.section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.section-heading h2 { margin-top: 4px; color: var(--color-text); font-size: 1.06rem; font-weight: 680; letter-spacing: -.02em; }
+.section-caption { padding-bottom: 2px; color: var(--color-text-secondary); font-size: .76rem; }
+.live-state { display: inline-flex; align-items: center; gap: 8px; padding-bottom: 2px; color: var(--color-text-secondary); font-size: .75rem; }
+.live-state i { width: 6px; height: 6px; }
+.loading-skeleton { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+.skeleton-card { height: 88px; border: 1px solid var(--dash-line); border-radius: 9px; background: var(--color-surface); animation: shimmer 1.5s ease-in-out infinite; }
+@keyframes shimmer { 0%, 100% { opacity: .52; } 50% { opacity: .88; } }
+.stats-row { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 11px; }
+.stat-card { position: relative; display: flex; align-items: center; gap: 13px; min-width: 0; padding: 17px 18px; overflow: hidden; border: 1px solid var(--dash-line); border-radius: 9px; background: var(--color-surface); transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.stat-card::after { content: ''; position: absolute; top: 0; right: 0; width: 52px; height: 2px; background: var(--accent); opacity: .72; }
+.stat-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--accent) 48%, var(--color-border)); box-shadow: 0 8px 22px rgba(27,59,91,.08); }
+.stat-icon { width: 39px; height: 39px; flex: 0 0 39px; display: grid; place-items: center; border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent); border-radius: 8px; background: color-mix(in srgb, var(--accent) 9%, var(--color-surface)); color: var(--accent); }
+.stat-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.stat-num { color: var(--color-text); font-size: 1.45rem; font-weight: 720; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+.stat-label { color: var(--color-text-secondary); font-size: .76rem; }
+.stat-index { position: absolute; right: 11px; bottom: 9px; color: var(--color-text-secondary); opacity: .45; font: 600 .59rem/1 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .07em; }
+.dual-row { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, .9fr); gap: 14px; }
+.charts-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
+.panel { min-width: 0; padding: 18px 20px 15px; border: 1px solid var(--dash-line); border-radius: 9px; background: var(--color-surface); box-shadow: 0 2px 9px rgba(27,59,91,.025); }
+.panel-heading { display: flex; align-items: center; justify-content: space-between; min-height: 38px; gap: 12px; }
+.panel-title { margin-top: 5px; color: var(--color-text); font-size: .9rem; font-weight: 650; }
+.panel-title small { margin-left: 5px; color: var(--color-text-secondary); font-size: .6rem; font-weight: 600; letter-spacing: .08em; }
+.panel-count { color: var(--dash-accent); font-size: .94rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.panel-count small { color: var(--color-text-secondary); font-size: .67rem; font-weight: 400; }
+.map-container { width: 100%; height: 310px; }
+.map-empty { height: 310px; padding: 0 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; color: var(--color-text-secondary); font-size: .83rem; text-align: center; line-height: 1.6; }
+.map-empty small { font-size: .7rem; opacity: .8; }
+.geo-retry { padding: 0; border: 0; color: var(--dash-accent); background: transparent; font: inherit; cursor: pointer; }
+.geo-retry:hover { text-decoration: underline; }
+.empty-mark { color: var(--dash-cyan); font-size: 2rem; line-height: 1; }
+.chart-wrapper { position: relative; height: 265px; margin-top: 8px; }
+.chart-empty { height: 265px; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); font-size: .8rem; }
 
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 24px;
-  color: var(--color-text);
-}
+[data-theme="dark"] .dashboard-intro { background: var(--color-surface); box-shadow: none; }
+[data-theme="dark"] .dashboard-intro::before,
+[data-theme="dark"] .dashboard-intro::after { display: none; }
+[data-theme="dark"] .stat-card:hover { box-shadow: none; }
+[data-theme="dark"] .panel { box-shadow: none; }
 
-/* ========== Loading skeleton ========== */
-.loading-skeleton {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-.skeleton-card {
-  height: 100px;
-  border-radius: 12px;
-  background: var(--color-surface);
-  animation: shimmer 1.5s ease-in-out infinite;
-}
-@keyframes shimmer {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 0.85; }
-}
-
-/* ========== Stats row ========== */
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 14px;
-  margin-bottom: 20px;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: var(--color-surface);
-  border-radius: 12px;
-  padding: 18px 20px;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  cursor: default;
-}
-.stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-}
-
-.stat-icon {
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  color: var(--accent);
-  flex-shrink: 0;
-}
-
-.stat-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.stat-num {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-text);
-  line-height: 1.2;
-  font-variant-numeric: tabular-nums;
-}
-.stat-label {
-  font-size: 0.8rem;
-  color: var(--color-text-secondary);
-}
-
-/* ========== Panels ========== */
-.panel {
-  background: var(--color-surface);
-  border-radius: 12px;
-  padding: 22px 24px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-.panel-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: 16px;
-}
-
-/* ========== Dual row (map + chart) ========== */
-.dual-row {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.map-panel {
-  min-width: 0;
-}
-.map-container {
-  height: 340px;
-  width: 100%;
-}
-.map-empty {
-  height: 340px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.6;
-  text-align: center;
-  padding: 0 20px;
-}
-
-.chart-wrapper {
-  height: 280px;
-  position: relative;
-}
-.chart-empty {
-  height: 280px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-secondary);
-}
-
-/* ========== Charts grid ========== */
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-.chart-panel {
-  min-width: 0;
-}
-
-/* ========== Responsive ========== */
 @media (max-width: 1200px) {
-  .dual-row {
-    grid-template-columns: 1fr;
-  }
-  .charts-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .chart-wrapper { height: 240px; }
+  .dual-row { grid-template-columns: minmax(0, 1.25fr) minmax(280px, .9fr); }
+  .charts-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
 }
-
 @media (max-width: 900px) {
-  .stats-row {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .charts-grid {
-    grid-template-columns: 1fr;
-  }
+  .dashboard-intro { padding: 27px 26px; }
+  .stats-row { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .dual-row { grid-template-columns: 1fr; }
 }
-
 @media (max-width: 640px) {
-  .stats-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .stat-card { padding: 14px 16px; gap: 10px; }
-  .stat-icon { width: 38px; height: 38px; border-radius: 10px; }
-  .stat-num { font-size: 1.25rem; }
-  .panel { padding: 16px; }
+  .dashboard { padding-bottom: 24px; }
+  .dashboard-intro { min-height: 0; align-items: flex-start; flex-direction: column; gap: 22px; margin-bottom: 24px; padding: 23px 20px; }
+  .dashboard-intro::after { right: -200px; top: -225px; }
+  .intro-copy h1 { margin-top: 11px; font-size: 1.8rem; }
+  .intro-copy p { font-size: .82rem; }
+  .intro-side { width: 100%; align-items: flex-start; gap: 12px; }
+  .date-stamp { font-size: .72rem; }
+  .quick-actions { width: 100%; }
+  .quick-actions button { flex: 1; }
+  .section-block { margin-top: 23px; }
+  .section-heading { align-items: flex-start; }
+  .section-caption { max-width: 42%; text-align: right; font-size: .68rem; }
+  .stats-row { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 9px; }
+  .stat-card { gap: 10px; padding: 14px 12px; }
+  .stat-icon { width: 34px; height: 34px; flex-basis: 34px; }
+  .stat-icon svg { width: 18px; height: 18px; }
+  .stat-num { font-size: 1.23rem; }
+  .stat-label { font-size: .7rem; }
+  .panel { padding: 16px 14px 12px; }
+  .panel-code { font-size: .59rem; }
+  .map-container, .map-empty { height: 250px; }
+  .chart-wrapper, .chart-empty { height: 235px; }
+  .charts-grid { grid-template-columns: 1fr; gap: 11px; }
+  .loading-skeleton { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 9px; }
+  .skeleton-card { height: 78px; }
 }
 </style>

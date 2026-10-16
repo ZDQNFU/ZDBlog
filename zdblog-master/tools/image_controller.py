@@ -64,12 +64,18 @@ def upload_image_to_github(image_file, article_id=''):
     branch = match.group(3)
     base_dir = match.group(4).rstrip('/')  # 如 "article"，去掉末尾斜杠
 
-    # 压缩图片
-    compressed = compress_image(image_file)
+    # SVG is already a web format Pillow cannot decode; preserve its original bytes.
+    # Other supported formats are re-encoded as JPEG by compress_image, so use a
+    # matching extension in the GitHub URL to keep the CDN content type accurate.
+    ext = image_file.name.rsplit('.', 1)[-1].lower() if '.' in image_file.name else 'jpg'
+    if ext == 'svg':
+        compressed = io.BytesIO(image_file.read())
+    else:
+        compressed = compress_image(image_file)
+        ext = 'jpg'
     img_bytes = compressed.read()
 
     # 生成唯一文件名
-    ext = image_file.name.rsplit('.', 1)[-1].lower() if '.' in image_file.name else 'jpg'
     if ext not in ('jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'):
         ext = 'jpg'
     filename = f"{uuid.uuid4().hex}.{ext}"

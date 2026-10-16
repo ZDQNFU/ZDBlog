@@ -6,7 +6,7 @@
 --   如没有，先通过 python manage.py createsuperuser 创建
 -- ============================================
 
-USE zblog;
+USE zdblog;
 
 INSERT INTO `auth_user` (
     `id`,
@@ -481,4 +481,3 @@ INSERT INTO `article_comment` (`id`, `article_id`, `author_id`, `parent_id`, `co
 ('c0000010001040008000000000000005', 'bbbbbbbbbbbb4bbb8bbbbbbbbbbbbb10', 1, NULL,
  '虚拟列表这块可以展开讲讲，对于长列表优化确实很重要。',
  '2026-05-14 14:00:00.000000', '2026-05-14 14:00:00.000000');
-
