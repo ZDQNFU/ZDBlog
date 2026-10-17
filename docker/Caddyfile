@@ -1,0 +1,7 @@
+{
+	email {$ACME_EMAIL}
+}
+
+zendee.top, www.zendee.top {
+	reverse_proxy web:80
+}
