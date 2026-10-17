@@ -49,9 +49,6 @@ services:
       DB_PORT: 5432
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      RAG_LOCAL_MODEL_PATH: /app/models/bge-small-zh-v1.5
-      RAG_LOCAL_DEVICE: cpu
-      RAG_LOCAL_PYTHON: ""
     volumes:
       - static_data:/app/zdblog-master/staticfiles
     depends_on:

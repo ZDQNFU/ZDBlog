@@ -19,13 +19,13 @@ def fingerprint():
 def validate_vector(vector):
     values = [float(v) for v in vector]
     if len(values) != VECTOR_DIMENSIONS or not all(math.isfinite(v) for v in values) or not any(values):
-        raise ValueError('Embedding must be a finite, nonzero 512-dimensional vector')
+        raise ValueError(f'Embedding must be a finite, nonzero {VECTOR_DIMENSIONS}-dimensional vector')
     return values
 
 
 def get_embedder():
     if settings.RAG_EMBED_DIM != VECTOR_DIMENSIONS:
-        raise ImproperlyConfigured('RAG_EMBED_DIM does not match vector(512); migrate the schema first')
+        raise ImproperlyConfigured(f'RAG_EMBED_DIM does not match vector({VECTOR_DIMENSIONS}); migrate the schema first')
     if settings.RAG_EMBED_PROVIDER == 'local':
         from .local_embeddings import get_local_embedder
         return get_local_embedder(settings.RAG_LOCAL_MODEL_PATH, settings.RAG_LOCAL_DEVICE, settings.RAG_LOCAL_PYTHON)
@@ -37,7 +37,7 @@ def get_embedder():
     kwargs = {'dimensions': VECTOR_DIMENSIONS} if settings.RAG_EMBED_SEND_DIMENSIONS else {}
     return OpenAIEmbeddings(model=settings.RAG_EMBED_MODEL, base_url=settings.RAG_EMBED_BASE_URL,
                            api_key=settings.RAG_EMBED_API_KEY, check_embedding_ctx_length=False,
-                           chunk_size=32, request_timeout=15, max_retries=1, **kwargs)
+                           chunk_size=20, request_timeout=15, max_retries=1, **kwargs)
 
 
 def embed_documents(texts):

@@ -20,23 +20,18 @@ COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=frontend-builder /src/zdblog-vue-c/dist/ /usr/share/nginx/html/
 COPY --from=frontend-builder /src/zdblog-vue-s/dist/ /usr/share/nginx/html/ZDAdmin/
 
-# Django API and local BGE embedding runtime.
+# Django API runtime; embeddings use the configured online provider.
 FROM python:3.12-slim AS backend
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    HF_HUB_OFFLINE=1 \
-    TRANSFORMERS_OFFLINE=1
+    PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
 COPY zdblog-master/requirements.txt /app/requirements.txt
 RUN pip install --upgrade pip \
-    && pip install -r /app/requirements.txt \
-    && pip install --index-url https://download.pytorch.org/whl/cpu torch==2.11.0 \
-    && pip install sentence-transformers==5.4.1
+    && pip install -r /app/requirements.txt
 
 COPY zdblog-master/ /app/zdblog-master/
-COPY models/bge-small-zh-v1.5/ /app/models/bge-small-zh-v1.5/
 COPY models/ip2region/ /app/models/ip2region/
 COPY docker/backend-entrypoint.sh /usr/local/bin/zdblog-entrypoint
 RUN chmod 755 /usr/local/bin/zdblog-entrypoint \

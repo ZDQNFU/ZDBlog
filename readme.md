@@ -9,7 +9,7 @@ ZDBlog 是一个基于 Django REST Framework 和 Vue 3 的个人博客系统，�
 - **博客前台**：文章列表、分类与标签筛选、搜索、Markdown 阅读、目录导航、评论与点赞；支持私密文章密码验证。
 - **管理后台**：文章编辑与图片上传、标签和分类、评论、用户、留言、资源链接、聊天人物与记录、访客统计和系统配置管理。
 - **AI 聊天**：LangGraph Agent、流式响应、DeepSeek 兼容接口；可配置站内 RAG、联网搜索、天气及角色工具。
-- **站内 RAG**：使用 PostgreSQL/pgvector 保存公开文章索引，默认使用仓库内 BGE 中文模型进行本地向量编码，并结合词法检索。
+- **站内 RAG**：使用 PostgreSQL/pgvector 保存公开文章索引，默认通过阿里云百炼 Qwen 在线生成 1024 维向量，并结合词法检索。
 - **其他**：JWT 认证、邮箱验证码、访客追踪、Redis 缓存、暗色主题。
 
 ## 技术栈
@@ -18,7 +18,7 @@ ZDBlog 是一个基于 Django REST Framework 和 Vue 3 的个人博客系统，�
 | --- | --- |
 | 后端 | Python 3.12、Django 6、Django REST Framework、Simple JWT、Gunicorn |
 | 数据库与缓存 | PostgreSQL 17、pgvector、pg_trgm、Redis 7 |
-| AI | LangChain、LangGraph、DeepSeek API、本地 BGE Small 中文嵌入模型 |
+| AI | LangChain、LangGraph、DeepSeek API、阿里云百炼 Qwen 在线嵌入模型 |
 | 前端 | Vue 3、Vue Router、Pinia、Element Plus、Vite 8 |
 | 管理端可视化 | Chart.js、ECharts |
 | 部署 | Docker Compose、Caddy（自动 HTTPS）、Nginx |
@@ -30,7 +30,7 @@ zdblog/
 ├── zdblog-master/       # Django API、聊天 Agent 和 RAG
 ├── zdblog-vue-c/        # 博客前台
 ├── zdblog-vue-s/        # 管理后台（部署路径 /ZDAdmin/）
-├── models/              # BGE 嵌入模型与 ip2region 数据
+├── models/              # ip2region 离线地域数据库
 ├── docker/              # Nginx、容器启动配置
 ├── docs/                # RAG 评测数据和设计资料
 ├── Dockerfile

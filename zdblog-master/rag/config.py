@@ -2,16 +2,16 @@
 import os
 from pathlib import Path
 
-VECTOR_DIMENSIONS = 512  # bge-small-zh-v1.5; a dimension change requires a migration.
+VECTOR_DIMENSIONS = 1024  # qwen3.7-text-embedding-flash; dimension changes require a migration.
 RAG_ENABLED = os.getenv('RAG_ENABLED', 'true').lower() in ('true', '1', 'yes')
 RAG_EMBED_BASE_URL = os.getenv('RAG_EMBED_BASE_URL', '')
 RAG_EMBED_API_KEY = os.getenv('RAG_EMBED_API_KEY', '')
-RAG_EMBED_MODEL = os.getenv('RAG_EMBED_MODEL', os.getenv('BGE_EMBEDDING_MODEL', 'BAAI/bge-small-zh-v1.5'))
-RAG_EMBED_DIM = int(os.getenv('RAG_EMBED_DIM', '512'))
+RAG_EMBED_MODEL = os.getenv('RAG_EMBED_MODEL', 'qwen3.7-text-embedding-flash')
+RAG_EMBED_DIM = int(os.getenv('RAG_EMBED_DIM', '1024'))
 RAG_LOCAL_MODEL_PATH = os.getenv('RAG_LOCAL_MODEL_PATH', os.getenv('BGE_MODEL_PATH', ''))
 if RAG_LOCAL_MODEL_PATH and not Path(RAG_LOCAL_MODEL_PATH).is_absolute():
     RAG_LOCAL_MODEL_PATH = str((Path(__file__).resolve().parents[1] / RAG_LOCAL_MODEL_PATH).resolve())
-RAG_EMBED_PROVIDER = os.getenv('RAG_EMBED_PROVIDER', 'local' if RAG_LOCAL_MODEL_PATH else 'openai')
+RAG_EMBED_PROVIDER = os.getenv('RAG_EMBED_PROVIDER', 'openai')
 RAG_LOCAL_DEVICE = os.getenv('RAG_LOCAL_DEVICE', os.getenv('EMBEDDING_DEVICE', 'cpu'))
 RAG_LOCAL_PYTHON = os.getenv('RAG_LOCAL_PYTHON', '')
 RAG_QUERY_INSTRUCTION = os.getenv('RAG_QUERY_INSTRUCTION', '为这个句子生成表示以用于检索相关文章：')

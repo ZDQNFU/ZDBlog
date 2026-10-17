@@ -16,7 +16,7 @@ from .evaluation import evaluate_cases
 
 
 def vector(axis=0):
-    result = [0.0] * 512
+    result = [0.0] * 1024
     result[axis] = 1.0
     return result
 
@@ -33,8 +33,8 @@ class PureTests(SimpleTestCase):
         self.assertEqual(rrf([['a', 'a'], ['b', 'a']])[0][0], 'a')
 
     def test_vector_validation(self):
-        self.assertEqual(len(validate_vector(vector())), 512)
-        for value in [[1] * 1024, [0] * 512, [float('nan')] * 512, [float('inf')] * 512]:
+        self.assertEqual(len(validate_vector(vector())), 1024)
+        for value in [[1] * 512, [0] * 1024, [float('nan')] * 1024, [float('inf')] * 1024]:
             with self.assertRaises(ValueError):
                 validate_vector(value)
 
@@ -61,7 +61,7 @@ class PostgresTests(TestCase):
         self.assertEqual(connection.vendor, 'postgresql')
         with connection.cursor() as cursor:
             cursor.execute("SELECT format_type(atttypid, atttypmod) FROM pg_attribute WHERE attrelid='article_chunk'::regclass AND attname='embedding'")
-            self.assertEqual(cursor.fetchone()[0], 'vector(512)')
+            self.assertEqual(cursor.fetchone()[0], 'vector(1024)')
             cursor.execute("SELECT extname FROM pg_extension WHERE extname IN ('vector', 'pg_trgm')")
             self.assertEqual({row[0] for row in cursor.fetchall()}, {'vector', 'pg_trgm'})
 

@@ -26,7 +26,7 @@ def split_article(article):
     pieces = []
     for section in sections:
         path = ' > '.join(section.metadata[k] for k in ['h1', 'h2', 'h3', 'h4'] if k in section.metadata)
-        # Keep a long heading path from consuming this model's 512-token input window.
+        # Keep long heading paths from dominating the embedding input.
         prefix = f'《{article.title[:40]}》' + (f' > {path[:40]}' if path else '')
         bodies = splitter.split_text(section.page_content)
         # Do not discard short sections: they can contain critical facts or code.

@@ -11,8 +11,8 @@ DATABASES['default']['TEST'] = {'NAME': 'test_zdblog_rag'}
 DATABASES['migration'] = {'ENGINE': 'django.db.backends.sqlite3', 'NAME': ':memory:',
                         'TEST': {'MIRROR': 'default'}}
 CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
-# Test fixtures must not run the user's real local model on save.
+# Test fixtures must not call the configured embedding provider on save.
 RAG_EMBED_PROVIDER = 'openai'
 RAG_EMBED_BASE_URL = ''
 RAG_EMBED_API_KEY = ''
-RAG_EMBED_MODEL = 'test-512'
+RAG_EMBED_MODEL = 'test-1024'
