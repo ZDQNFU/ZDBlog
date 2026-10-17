@@ -15,6 +15,8 @@ import { useTheme } from '@/composables/useTheme'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { marked } from 'marked'
 import { safeMarkdown } from '@/utils/chatMarkdown'
+import EmojiPicker from '@/components/EmojiPicker.vue'
+import '@/assets/messageComposer.css'
 marked.setOptions({ breaks: true, gfm: true })
 const router = useRouter()
 const auth = useAuthStore()
@@ -25,6 +27,8 @@ const conversations = ref([]),
   current = ref(null)
 const messages = ref([]),
   inputText = ref(''),
+  messageInput = ref(null),
+  showEmoji = ref(false),
   sending = ref(false),
   loading = ref(true),
   ready = ref(false)
@@ -78,6 +82,7 @@ function newChat() {
   current.value = null
   messages.value = []
   inputText.value = ''
+  showEmoji.value = false
   loading.value = false
   sidebarOpen.value = false
 }
@@ -126,6 +131,7 @@ async function removeConversation(c) {
 }
 async function handleSend() {
   if (!canSend.value) return
+  showEmoji.value = false
   const text = inputText.value.trim()
   sending.value = true
   try {
@@ -172,6 +178,17 @@ async function handleSend() {
 function suggestion(text) {
   inputText.value = text
   handleSend()
+}
+async function insertEmoji(emoji) {
+  const input = messageInput.value
+  const start = input?.selectionStart ?? inputText.value.length
+  const end = input?.selectionEnd ?? start
+  if (inputText.value.length - (end - start) + emoji.length > 10000) return
+  inputText.value = inputText.value.slice(0, start) + emoji + inputText.value.slice(end)
+  showEmoji.value = false
+  await nextTick()
+  input?.focus()
+  input?.setSelectionRange(start + emoji.length, start + emoji.length)
 }
 function keydown(e) {
   if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
@@ -334,32 +351,42 @@ onBeforeUnmount(() => {
                 ><i></i><i></i><i></i
               ></span>
               <span v-else class="failed-hint">未收到回复，请重试</span>
+              <small v-if="m.role === 'ai' && m.content" class="ai-disclaimer">
+                AI 生成的内容仅供参考
+              </small>
             </div>
           </article>
         </div>
       </div>
       <div class="composer-wrap">
         <p v-if="!hasChatAccess" class="access-hint">当前聊天功能仅向管理员开放。</p>
-        <div class="composer">
+        <div class="dm-input-bar">
+          <button
+            class="dm-emoji-btn"
+            aria-label="选择表情"
+            :aria-expanded="showEmoji"
+            :disabled="sending || loading || !ready || !hasChatAccess"
+            @click="showEmoji = !showEmoji"
+          >
+            😀
+          </button>
           <textarea
+            ref="messageInput"
             v-model="inputText"
+            class="dm-msg-input"
             maxlength="10000"
-            rows="2"
-            placeholder="发送消息，Enter 发送，Shift+Enter 换行"
+            rows="1"
+            placeholder="发送一条消息..."
             aria-label="聊天消息"
+            title="Enter 发送，Shift+Enter 换行"
             :disabled="sending || loading || !ready || !hasChatAccess"
             @keydown="keydown"
           ></textarea>
-          <div class="composer-footer">
-            <span>{{
-              current ? `正在与 ${speaker} 聊天` : '开始新聊天后，人物设定会保存在该会话中'
-            }}</span
-            ><button class="send-btn" :disabled="!canSend" @click="handleSend">
-              {{ sending ? '回复中' : '发送 ↑' }}
-            </button>
-          </div>
+          <button class="dm-send-btn" :disabled="!canSend" @click="handleSend">
+            {{ sending ? '回复中' : '发送' }}
+          </button>
         </div>
-        <p class="input-tip">AI 生成的内容仅供参考</p>
+        <EmojiPicker :visible="showEmoji" @select="insertEmoji" @close="showEmoji = false" />
       </div>
     </main>
   </div>
@@ -428,7 +455,7 @@ select:focus-visible,
   outline-offset: 3px;
 }
 .chat-search::placeholder,
-.composer textarea::placeholder {
+.dm-msg-input::placeholder {
   color: var(--color-text-secondary);
   opacity: 1;
 }
@@ -950,57 +977,17 @@ select:focus-visible,
 /* ---------------- 输入区 ---------------- */
 .composer-wrap {
   flex-shrink: 0;
-  padding: 8px 24px 12px;
-}
-.composer {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
+  padding-bottom: env(safe-area-inset-bottom);
   background: var(--color-surface);
 }
-.composer:focus-within {
-  border-color: var(--wx-action);
-}
-.composer textarea {
-  width: 100%;
-  box-sizing: border-box;
-  resize: none;
-  min-height: 52px;
-  max-height: 160px;
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: inherit;
-  font-size: 15px;
-  line-height: 1.6;
-}
-.composer-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding-top: 6px;
-  border-top: 1px solid var(--color-border);
-}
-.composer-footer span {
-  font-size: 11px;
+.ai-disclaimer {
+  margin-top: 5px;
+  padding: 0 2px;
   color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+  opacity: 0.72;
 }
-.send-btn {
-  padding: 7px 18px;
-  border: 0;
-  border-radius: var(--wx-radius);
-  background: var(--wx-button-bg);
-  color: var(--wx-button-text);
-  font-size: 14px;
-  white-space: nowrap;
-}
-.send-btn:hover:not(:disabled) {
-  filter: brightness(1.08);
-}
-.input-tip,
 .access-hint {
   margin: 8px 0 0;
   text-align: center;
@@ -1059,17 +1046,13 @@ select:focus-visible,
     font-size: 15px;
   }
   .bubble {
-    max-width: 82%;
+    max-width: 94%;
     font-size: 14.5px;
+    letter-spacing: -0.015em;
+    line-height: 1.58;
   }
   .greeting-row .bubble {
     max-width: none;
-  }
-  .composer-wrap {
-    padding: 6px 12px max(10px, env(safe-area-inset-bottom));
-  }
-  .composer-footer span {
-    max-width: 62%;
   }
   .suggestions {
     gap: 8px;

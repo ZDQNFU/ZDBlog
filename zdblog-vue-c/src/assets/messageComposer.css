@@ -1,0 +1,71 @@
+/* Shared by the message board and chat page. */
+.dm-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  flex-shrink: 0;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.dm-input-bar .dm-emoji-btn {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 12px;
+  background: var(--color-bg);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.dm-input-bar .dm-msg-input {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 0 14px;
+  font-size: 15px;
+  outline: none;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+.dm-input-bar .dm-msg-input:focus {
+  border-color: var(--color-primary);
+}
+
+.dm-input-bar textarea.dm-msg-input {
+  resize: none;
+  padding: 10px 14px;
+  line-height: 20px;
+}
+
+.dm-input-bar .dm-send-btn {
+  flex-shrink: 0;
+  height: 42px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 12px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.18s;
+}
+.dm-input-bar .dm-send-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+.dm-input-bar .dm-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .dm-input-bar {
+    gap: 6px;
+    padding: 8px 10px;
+  }
+}

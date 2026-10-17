@@ -6,6 +6,7 @@ import { useTheme } from '@/composables/useTheme'
 import AuthModal from '@/components/AuthModal.vue'
 import EmojiPicker from '@/components/EmojiPicker.vue'
 import MessageCard from '@/components/MessageCard.vue'
+import '@/assets/messageComposer.css'
 
 const auth = useAuthStore()
 const { isDark } = useTheme()
@@ -175,49 +176,6 @@ onUnmounted(() => {
 
 /* ---- input bar ---- */
 
-.dm-input-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  flex-shrink: 0;
-  background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
-}
-
-.dm-emoji-btn {
-  width: 42px; height: 42px;
-  border: none; border-radius: 12px;
-  background: var(--color-bg);
-  font-size: 20px;
-  cursor: pointer;
-}
-
-.dm-msg-input {
-  flex: 1; height: 42px;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 0 14px;
-  font-size: 15px;
-  outline: none;
-  background: var(--color-bg);
-  color: var(--color-text);
-}
-.dm-msg-input:focus { border-color: var(--color-primary); }
-
-.dm-send-btn {
-  height: 42px;
-  padding: 0 20px;
-  border: none; border-radius: 12px;
-  background: var(--color-primary);
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.18s;
-}
-.dm-send-btn:hover:not(:disabled) { opacity: 0.9; }
-.dm-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
 .dm-speed {
   display: flex; align-items: center; gap: 6px;
   font-size: 13px; color: var(--color-text-secondary);
@@ -226,6 +184,5 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .dm-speed { display: none; }
-  .dm-input-bar { gap: 6px; padding: 8px 10px; }
 }
 </style>
