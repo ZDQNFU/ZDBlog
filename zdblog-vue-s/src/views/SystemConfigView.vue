@@ -31,6 +31,18 @@ const valueTypes = [
 
 const helpItems = [
   {
+    key: 'ICP_BEIAN',
+    title: 'ICP 备案号',
+    description: '显示在前台页脚，并链接到工信部备案查询。留空则页脚不显示该项。',
+    example: '皖ICP备2024030355号',
+  },
+  {
+    key: 'GONGAN_BEIAN',
+    title: '公安备案号',
+    description: '显示在前台页脚，并链接到全国互联网安全管理服务平台。留空则页脚不显示该项。',
+    example: '皖公网安备34180002000000号',
+  },
+  {
     key: 'GITHUB_TOKEN',
     title: 'GitHub 访问令牌',
     description: '用于把文章图片上传到 GitHub。请填写对目标仓库有写入权限的 Personal Access Token，并开启“加密存储”。',

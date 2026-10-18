@@ -213,3 +213,12 @@ const LINKS_BASE = '/api/links/c/links'
 export function fetchLinks() {
   return request(`${LINKS_BASE}/`)
 }
+
+// ==================== System Config ====================
+
+const SYSTEM_CONFIG_BASE = '/api/system-config'
+
+// 公开只读配置（目前是页脚备案号），未配置时后端返回空字符串
+export function fetchPublicConfig() {
+  return request(`${SYSTEM_CONFIG_BASE}/c/public/`)
+}

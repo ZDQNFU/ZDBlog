@@ -1,9 +1,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { fetchPublicConfig } from '@/api'
 
 const runningDays = ref(0)
 const hitokoto = ref(null)
 const hitokotoLoading = ref(true)
+const icpBeian = ref('')
+const gonganBeian = ref('')
 
 function getRunningDays() {
   const start = new Date('2026-06-01')
@@ -23,9 +26,22 @@ async function fetchHitokoto() {
   }
 }
 
+async function fetchBeian() {
+  try {
+    const data = await fetchPublicConfig()
+    icpBeian.value = data.ICP_BEIAN || ''
+    gonganBeian.value = data.GONGAN_BEIAN || ''
+  } catch {
+    // 配置读取失败时保持为空，不影响页脚其余内容
+    icpBeian.value = ''
+    gonganBeian.value = ''
+  }
+}
+
 onMounted(() => {
   runningDays.value = getRunningDays()
   fetchHitokoto()
+  fetchBeian()
 })
 </script>
 
@@ -52,7 +68,11 @@ onMounted(() => {
       </div>
     </div>
     <div class="footer-inner" style="margin-top: 12px; justify-content: center;">
-      <p>Copyright © 2025 ZDQNFU. | <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">皖ICP备2024030355号</a></p>
+      <p>
+        Copyright © 2025 ZDQNFU.
+        <template v-if="icpBeian"> | <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">{{ icpBeian }}</a></template>
+        <template v-if="gonganBeian"> | <a href="https://beian.mps.gov.cn/" target="_blank" rel="noopener noreferrer"><img src="/img/gongan-beian.png" class="beian-icon" alt="" />{{ gonganBeian }}</a></template>
+      </p>
     </div>
   </footer>
 </template>
@@ -99,6 +119,13 @@ onMounted(() => {
   display: inline-block;
   animation: rocketBounce 1.2s ease-in-out infinite;
   font-size: 1rem;
+}
+
+.beian-icon {
+  height: 18px;
+  width: auto;
+  vertical-align: -0.15em;
+  margin-right: 4px;
 }
 
 @keyframes rocketBounce {
