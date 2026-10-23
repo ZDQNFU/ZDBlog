@@ -17,6 +17,7 @@ from article.serializers.article_serializer import (
 )
 from tools.cache_utils import invalidate
 from tools.image_controller import upload_image_to_github
+from user.permissions import IsSuperAdmin
 
 
 logger = logging.getLogger(__name__)
@@ -174,28 +175,31 @@ class SCategoryRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
 # ---------- Comment CRUD ----------
 
-class SCommentListCreateView(generics.ListCreateAPIView):
+class SCommentListCreateView(generics.ListAPIView):
     """S端：评论列表"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsSuperAdmin]
     search_fields = ['author__username', 'content']
     queryset = (
         Comment.objects
-        .select_related('author', 'article')
+        .select_related('author', 'article', 'reviewed_by')
         .order_by('-created_at')
     )
     serializer_class = CommentAdminSerializer
 
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
-        invalidate('dashboard:stats')
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        review_status = self.request.query_params.get('status')
+        if review_status:
+            queryset = queryset.filter(status=review_status)
+        return queryset
 
 
 class SCommentRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     """S端：评论详情 & 更新 & 删除"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsSuperAdmin]
     queryset = (
         Comment.objects
-        .select_related('author', 'article')
+        .select_related('author', 'article', 'reviewed_by')
     )
     serializer_class = CommentAdminSerializer
 

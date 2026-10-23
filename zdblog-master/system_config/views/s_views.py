@@ -1,5 +1,5 @@
 from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
+from user.permissions import IsSuperAdmin
 
 from system_config.models import SystemConfig
 from system_config.serializers import (
@@ -10,7 +10,7 @@ from system_config.serializers import (
 
 
 class SSystemConfigListCreateView(generics.ListCreateAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsSuperAdmin]
     search_fields = ['key', 'description']
     queryset = SystemConfig.objects.order_by('-updated_at')
 
@@ -21,7 +21,7 @@ class SSystemConfigListCreateView(generics.ListCreateAPIView):
 
 
 class SSystemConfigRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsSuperAdmin]
     queryset = SystemConfig.objects.all()
 
     def get_serializer_class(self):

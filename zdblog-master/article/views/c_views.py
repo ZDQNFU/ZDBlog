@@ -6,6 +6,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.throttling import UserRateThrottle
 
 from tools.cache_utils import cache_result
 from article.models import Article, Comment, Like, Tag
@@ -92,10 +93,20 @@ class ArticleVerifyView(APIView):
         return Response(serializer.data)
 
 
+class CommentRateThrottle(UserRateThrottle):
+    scope = 'comment'
+    rate = '5/min'
+
+
 class CommentCreateView(generics.CreateAPIView):
     """C端：创建评论（需登录）"""
     permission_classes = [IsAuthenticated]
     serializer_class = CommentCreateSerializer
+    throttle_classes = [CommentRateThrottle]
+
+    def throttled(self, request, wait):
+        from rest_framework.exceptions import Throttled
+        raise Throttled(wait=wait, detail='评论提交过于频繁，请稍后再试')
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)

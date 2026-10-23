@@ -37,6 +37,12 @@ class SystemConfigWriteSerializer(serializers.ModelSerializer):
         model = SystemConfig
         fields = ['key', 'value', 'value_type', 'description', 'is_encrypted']
 
+    def validate(self, attrs):
+        key = attrs.get('key', self.instance.key if self.instance else '')
+        if key in ('COMMENT_BLOCK_WORDS', 'COMMENT_REVIEW_WORDS'):
+            raise serializers.ValidationError({'key': '评论关键词已迁移，请在“评论管理 → 审核关键词”中维护'})
+        return attrs
+
     def create(self, validated_data):
         if validated_data.get('is_encrypted'):
             validated_data['value'] = dumps(validated_data['value'])

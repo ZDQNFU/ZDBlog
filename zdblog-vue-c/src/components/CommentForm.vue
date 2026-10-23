@@ -9,24 +9,33 @@ const props = defineProps({
   replyTo: { type: Object, default: null },
 })
 
-const emit = defineEmits(['posted', 'login-request'])
+const emit = defineEmits(['posted', 'login-request', 'cancel-reply'])
 
 const auth = useAuthStore()
 const content = ref('')
 const submitting = ref(false)
 const error = ref('')
+const notice = ref('')
+const noticeStatus = ref('')
 const showEmoji = ref(false)
 const textareaRef = ref(null)
 
 async function handleSubmit() {
-  if (!content.value.trim()) return
+  if (submitting.value || !content.value.trim()) return
   submitting.value = true
   error.value = ''
+  notice.value = ''
   try {
     const parentId = props.replyTo?.id || null
-    await createComment(props.articleId, content.value.trim(), parentId)
+    const result = await createComment(props.articleId, content.value.trim(), parentId)
+    if (result.status === 'rejected') {
+      error.value = result.message
+      return
+    }
     content.value = ''
-    emit('posted')
+    notice.value = result.message || '评论发表成功'
+    noticeStatus.value = result.status
+    emit('posted', result)
   } catch (e) {
     error.value = e.message
   } finally {
@@ -64,7 +73,8 @@ function insertEmoji(emoji) {
         回复 <strong>{{ replyTo.author_name }}</strong>
         <button class="cancel-reply-btn" @click="emit('cancel-reply')">取消回复</button>
       </div>
-      <div v-if="error" class="form-error">{{ error }}</div>
+      <div v-if="error" class="form-error" role="alert">{{ error }}</div>
+      <div v-if="notice" class="form-notice" :class="{ pending: noticeStatus === 'pending' }" role="status">{{ notice }}</div>
       <div class="textarea-wrapper">
         <textarea
           ref="textareaRef"
@@ -72,6 +82,9 @@ function insertEmoji(emoji) {
           class="comment-textarea"
           :placeholder="replyTo ? '写下你的回复...' : '写下你的评论...'"
           rows="3"
+          maxlength="2000"
+          :disabled="submitting"
+          @input="error = ''; notice = ''"
         ></textarea>
         <button class="emoji-toggle-btn" @click="showEmoji = !showEmoji" title="表情">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -84,7 +97,7 @@ function insertEmoji(emoji) {
       </div>
       <EmojiPicker :visible="showEmoji" @select="insertEmoji" @close="showEmoji = false" />
       <div class="form-actions">
-        <span class="form-note">以 <strong>{{ auth.user?.username }}</strong> 的身份发表</span>
+        <span class="form-note">以 <strong>{{ auth.user?.username }}</strong> 的身份发表 · {{ content.length }}/2000<br />评论将自动审核，请文明交流</span>
         <button class="submit-btn" :disabled="submitting || !content.trim()" @click="handleSubmit">
           {{ submitting ? '提交中...' : '发表评论' }}
         </button>
@@ -159,6 +172,17 @@ function insertEmoji(emoji) {
   font-size: 0.85rem;
   margin-bottom: 8px;
 }
+
+.form-notice {
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+.form-notice.pending { color: var(--color-text-secondary); }
 
 .textarea-wrapper {
   position: relative;

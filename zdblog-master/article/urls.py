@@ -1,4 +1,5 @@
 from django.urls import path
+from article.views.keyword_views import CommentKeywordListCreateView, CommentKeywordDetailView
 
 from article.views.c_views import ArticleListView, ArticleDetailView, ArticleVerifyView, CommentCreateView, LikeToggleView, TagListView, RandomArticleView
 from article.views.s_views import (
@@ -45,6 +46,8 @@ urlpatterns = [
     path('s/categories/<str:pk>/', SCategoryRetrieveUpdateDestroyView.as_view(), name='s_category_detail'),
 
     # 评论 CRUD
+    path('s/comment-keywords/', CommentKeywordListCreateView.as_view(), name='s_comment_keywords'),
+    path('s/comment-keywords/<int:pk>/', CommentKeywordDetailView.as_view(), name='s_comment_keyword_detail'),
     path('s/comments/', SCommentListCreateView.as_view(), name='s_comment_list_create'),
     path('s/comments/<str:pk>/', SCommentRetrieveUpdateDestroyView.as_view(), name='s_comment_detail'),
 ]

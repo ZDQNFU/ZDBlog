@@ -183,6 +183,15 @@ class Article(models.Model):
 
 
 class Comment(models.Model):
+    STATUS_PENDING = 'pending'
+    STATUS_APPROVED = 'approved'
+    STATUS_REJECTED = 'rejected'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, '待审核'),
+        (STATUS_APPROVED, '已通过'),
+        (STATUS_REJECTED, '已拒绝'),
+    ]
+
     id = models.CharField(
         primary_key=True,
         max_length=32,
@@ -212,6 +221,16 @@ class Comment(models.Model):
         verbose_name='父评论'
     )
     content = models.TextField('评论内容')
+    content_fingerprint = models.CharField('内容指纹', max_length=64, db_index=True,
+                                          blank=True, editable=False)
+    status = models.CharField('审核状态', max_length=20, choices=STATUS_CHOICES,
+                              default=STATUS_PENDING, db_index=True)
+    moderation_reason = models.CharField('审核原因', max_length=255, blank=True)
+    reviewed_by = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='reviewed_comments', verbose_name='审核人',
+    )
+    reviewed_at = models.DateTimeField('人工审核时间', null=True, blank=True)
     created_at = models.DateTimeField('评论时间', auto_now_add=True)
     updated_at = models.DateTimeField('最后修改时间', auto_now=True)
 
@@ -223,6 +242,65 @@ class Comment(models.Model):
 
     def __str__(self):
         return f'{self.author} 评论了 {self.article}'
+
+    def save(self, *args, **kwargs):
+        from article.services.comment_text import content_fingerprint
+
+        update_fields = kwargs.get('update_fields')
+        if update_fields is None or 'content' in update_fields:
+            self.content_fingerprint = content_fingerprint(self.content)
+            if update_fields is not None:
+                kwargs['update_fields'] = {*update_fields, 'content_fingerprint'}
+        super().save(*args, **kwargs)
+
+
+class CommentModerationKeyword(models.Model):
+    ACTION_REJECT = 'reject'
+    ACTION_REVIEW = 'review'
+    ACTION_CHOICES = [(ACTION_REJECT, '直接拒绝'), (ACTION_REVIEW, '进入待审')]
+    SOURCE_BUILTIN = 'builtin'
+    SOURCE_CUSTOM = 'custom'
+
+    word = models.CharField('关键词', max_length=100)
+    normalized_word = models.CharField('匹配词', max_length=200, unique=True, editable=False)
+    action = models.CharField('处理方式', max_length=10, choices=ACTION_CHOICES, default=ACTION_REJECT)
+    enabled = models.BooleanField('启用', default=True)
+    description = models.CharField('分类或备注', max_length=200, blank=True)
+    source = models.CharField('来源', max_length=10, default=SOURCE_CUSTOM,
+                              choices=[(SOURCE_BUILTIN, '内置'), (SOURCE_CUSTOM, '自定义')])
+    created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL,
+                                   related_name='created_comment_keywords', verbose_name='创建人')
+    updated_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL,
+                                   related_name='updated_comment_keywords', verbose_name='修改人')
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('修改时间', auto_now=True)
+
+    class Meta:
+        db_table = 'article_comment_keyword'
+        verbose_name = '评论审核关键词'
+        verbose_name_plural = verbose_name
+        ordering = ['-created_at', '-pk']
+
+    def save(self, *args, **kwargs):
+        from article.services.comment_text import normalize
+
+        self.normalized_word = normalize(self.word)
+        if kwargs.get('update_fields') is not None:
+            kwargs['update_fields'] = {*kwargs['update_fields'], 'normalized_word'}
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        from article.services.comment_text import normalize
+
+        normalized = normalize(self.word)
+        if not normalized:
+            raise ValidationError({'word': '关键词须包含汉字、字母或数字'})
+        if type(self).objects.filter(normalized_word=normalized).exclude(pk=self.pk).exists():
+            raise ValidationError({'word': '该关键词已存在（忽略大小写、全半角和分隔符）'})
+
+    def __str__(self):
+        return self.word
 
 
 class Like(models.Model):
