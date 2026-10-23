@@ -17,6 +17,8 @@ const content = ref('')
 const showEmoji = ref(false)
 const showAuthModal = ref(false)
 const submitting = ref(false)
+const feedback = ref('')
+const feedbackError = ref(false)
 const speedMultiplier = ref(1)
 
 const TRACKS = 9
@@ -85,6 +87,10 @@ async function loadMessages() {
   try {
     const data = await fetchMessages()
     messages.value = Array.isArray(data) ? data : (data.results || [])
+    const visibleIds = new Set(messages.value.map(message => message.id))
+    for (const card of [...cards.value]) {
+      if (!visibleIds.has(card.message.id)) removeCard(card.id)
+    }
   } catch {}
 }
 
@@ -96,11 +102,21 @@ function randomLaunch() {
 async function handleSend() {
   if (!content.value.trim() || submitting.value) return
   submitting.value = true
+  feedback.value = ''
+  feedbackError.value = false
   try {
-    await createMessage(content.value.trim())
+    const result = await createMessage(content.value.trim())
+    feedback.value = result.message || '留言发送成功'
+    if (result.status === 'rejected') {
+      feedbackError.value = true
+      return
+    }
     content.value = ''
     showEmoji.value = false
     await loadMessages()
+  } catch (error) {
+    feedback.value = error.message || '留言发送失败，请稍后重试'
+    feedbackError.value = true
   } finally { submitting.value = false }
 }
 
@@ -137,13 +153,16 @@ onUnmounted(() => {
       />
     </div>
 
+    <p v-if="feedback" class="dm-feedback" :class="{ error: feedbackError }" :role="feedbackError ? 'alert' : 'status'">{{ feedback }}</p>
     <div class="dm-input-bar">
-      <button class="dm-emoji-btn" @click="showEmoji = !showEmoji">😀</button>
+      <button class="dm-emoji-btn" :disabled="submitting" @click="showEmoji = !showEmoji">😀</button>
       <input
         v-model="content"
         class="dm-msg-input"
         maxlength="100"
-        placeholder="发送一条友善留言..."
+        :disabled="submitting"
+        placeholder="发送友善留言，内容将自动审核..."
+        @input="feedback = ''"
         @keydown.enter="handleSend"
       />
       <button class="dm-send-btn" :disabled="!content.trim() || submitting" @click="handleSend">发送</button>
@@ -173,6 +192,18 @@ onUnmounted(() => {
   position: relative;
   overflow: hidden;
 }
+
+.dm-feedback {
+  margin: 0;
+  padding: 10px 16px;
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+.dm-feedback.error { color: #ef4444; }
 
 /* ---- input bar ---- */
 

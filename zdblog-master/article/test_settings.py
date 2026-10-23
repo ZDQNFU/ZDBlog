@@ -2,7 +2,7 @@
 SECRET_KEY = 'isolated-comment-moderation-tests'
 INSTALLED_APPS = [
     'django.contrib.auth', 'django.contrib.contenttypes', 'rest_framework',
-    'article', 'system_config',
+    'article', 'system_config', 'message',
 ]
 DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': ':memory:'}}
 CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}

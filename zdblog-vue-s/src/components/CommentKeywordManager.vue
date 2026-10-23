@@ -120,7 +120,7 @@ watch(() => props.modelValue, (visible) => {
     :model-value="modelValue" title="审核关键词" width="min(1000px, 94vw)"
     @update:model-value="emit('update:modelValue', $event)" @closed="editingVisible = false"
   >
-    <p class="keyword-intro">内置词和自定义词统一在这里维护。启用的关键词对新提交的评论生效，内置词也可以修改或停用。</p>
+    <p class="keyword-intro">评论与留言共用这份词库。内置词和自定义词统一在这里维护，对新提交的内容生效，内置词也可以修改或停用。</p>
     <div class="keyword-toolbar">
       <div class="keyword-search">
         <el-input v-model="search" placeholder="搜索关键词或备注" clearable :prefix-icon="Search"

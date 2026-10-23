@@ -318,7 +318,7 @@ class CommentMigrationTests(TransactionTestCase):
     def test_upgrade_keeps_historical_comments_public_and_new_defaults_pending(self):
         executor = MigrationExecutor(connection)
         old_target = [('article', '0004_like')]
-        new_target = [('article', '0006_comment_keywords_and_fingerprint')]
+        new_target = [('article', '0006_comment_keywords_and_fingerprint'), ('message', '0002_message_moderation')]
         executor.migrate(old_target)
         try:
             old_apps = executor.loader.project_state(old_target).apps
@@ -336,7 +336,7 @@ class CommentMigrationTests(TransactionTestCase):
 
     def test_existing_custom_keywords_and_rejections_are_migrated(self):
         old_target = [('article', '0005_comment_moderation'), ('system_config', '0001_initial')]
-        new_target = [('article', '0006_comment_keywords_and_fingerprint')]
+        new_target = [('article', '0006_comment_keywords_and_fingerprint'), ('message', '0002_message_moderation')]
         executor = MigrationExecutor(connection)
         executor.migrate(old_target)
         try:

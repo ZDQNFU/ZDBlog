@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { fetchMessages, createMessage, updateMessage, deleteMessage } from '@/api/messages'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
+import CommentKeywordManager from '@/components/CommentKeywordManager.vue'
 
 const messages = ref([])
 const loading = ref(false)
@@ -12,6 +13,14 @@ const pageSize = ref(20)
 const searchContent = ref('')
 const searchUser = ref('')
 const searchDateRange = ref([])
+const statusFilter = ref('')
+const reviewingId = ref(null)
+const keywordDialogVisible = ref(false)
+const statusOptions = [
+  { value: 'pending', label: '待审核', type: 'warning' },
+  { value: 'approved', label: '已通过', type: 'success' },
+  { value: 'rejected', label: '已拒绝', type: 'danger' },
+]
 let searchTimer = null
 
 const detailVisible = ref(false)
@@ -27,6 +36,7 @@ async function load() {
   loading.value = true
   try {
     const params = { page: page.value, page_size: pageSize.value }
+    if (statusFilter.value) params.status = statusFilter.value
     if (searchContent.value) params.search = searchContent.value
     if (searchUser.value) params.search = (params.search || '') + ' ' + searchUser.value
     if (searchDateRange.value?.length === 2) {
@@ -36,6 +46,13 @@ async function load() {
     const { data } = await fetchMessages(params)
     messages.value = data.results || data
     total.value = data.count || 0
+  } catch (error) {
+    if (error.response?.status === 404 && page.value > 1) {
+      page.value -= 1
+      await load()
+      return
+    }
+    ElMessage.error('留言列表加载失败，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -75,7 +92,7 @@ async function handleSave() {
   try {
     if (editingId.value) {
       await updateMessage(editingId.value, form.value)
-      ElMessage.success('更新成功')
+      ElMessage.success('已保存，修改内容会重新自动审核')
     } else {
       await createMessage(form.value)
       ElMessage.success('创建成功')
@@ -90,6 +107,31 @@ async function handleSave() {
     formLoading.value = false
   }
 }
+
+async function handleReview(row, status) {
+  reviewingId.value = row.id
+  try {
+    await updateMessage(row.id, { status })
+    ElMessage.success(status === 'approved' ? '已通过审核' : '已拒绝该留言')
+    await load()
+  } catch {
+    ElMessage.error('审核失败，请稍后重试')
+  } finally {
+    reviewingId.value = null
+  }
+}
+
+async function handleHidden(row, hidden) {
+  try {
+    await updateMessage(row.id, { is_hidden: hidden ? 1 : 0 })
+    await load()
+  } catch {
+    ElMessage.error('更新显示状态失败，请稍后重试')
+  }
+}
+
+function onFilterChange() { page.value = 1; load() }
+function statusInfo(value) { return statusOptions.find(option => option.value === value) || statusOptions[0] }
 
 async function handleDelete(row) {
   try {
@@ -113,6 +155,9 @@ onMounted(load)
     <div class="page-header">
       <h2>留言管理</h2>
       <div class="header-right">
+        <el-select v-model="statusFilter" placeholder="全部审核状态" clearable style="width: 150px" @change="onFilterChange">
+          <el-option v-for="option in statusOptions" :key="option.value" :label="option.label" :value="option.value" />
+        </el-select>
         <el-input
           v-model="searchContent"
           placeholder="搜索留言内容..."
@@ -138,13 +183,17 @@ onMounted(load)
           start-placeholder="开始时间"
           end-placeholder="结束时间"
           format="YYYY-MM-DD HH:mm"
-          value-format="YYYY-MM-DD HH:mm"
           style="width: 320px"
-          @change="load"
+          @change="onFilterChange"
         />
+        <el-button @click="keywordDialogVisible = true">审核关键词</el-button>
         <el-button type="primary" @click="openDialog()">新建留言</el-button>
       </div>
     </div>
+
+    <el-alert class="moderation-hint" type="info" :closable="false" show-icon
+      title="留言与评论共用审核关键词。只有审核通过且未隐藏的留言会公开；已拒绝的相同留言再次提交会直接拒绝。" />
+    <CommentKeywordManager v-model="keywordDialogVisible" />
 
     <el-table :data="messages" v-loading="loading" stripe border style="width:100%">
       <el-table-column prop="content" label="留言内容" min-width="240" show-overflow-tooltip />
@@ -156,19 +205,25 @@ onMounted(load)
         </template>
       </el-table-column>
       <el-table-column prop="like_count" label="点赞数" min-width="80" align="center" />
+      <el-table-column label="审核状态" width="110">
+        <template #default="{ row }"><el-tag :type="statusInfo(row.status).type">{{ statusInfo(row.status).label }}</el-tag></template>
+      </el-table-column>
+      <el-table-column prop="moderation_reason" label="自动审核说明" min-width="220" show-overflow-tooltip />
       <el-table-column label="隐藏" min-width="80" align="center">
         <template #default="{ row }">
           <el-switch
             :model-value="row.is_hidden === 1"
-            @change="(val) => updateMessage(row.id, { is_hidden: val ? 1 : 0 }).then(() => load())"
+            @change="(val) => handleHidden(row, val)"
           />
         </template>
       </el-table-column>
       <el-table-column label="留言时间" min-width="160">
         <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
       </el-table-column>
-      <el-table-column label="操作" min-width="220">
+      <el-table-column label="操作" width="350">
         <template #default="{ row }">
+          <el-button v-if="row.status !== 'approved'" size="small" type="success" :disabled="reviewingId !== null" @click="handleReview(row, 'approved')">通过</el-button>
+          <el-button v-if="row.status !== 'rejected'" size="small" type="warning" :disabled="reviewingId !== null" @click="handleReview(row, 'rejected')">拒绝</el-button>
           <el-button size="small" type="primary" @click="openDialog(row)">编辑</el-button>
           <el-button size="small" class="detail-btn" @click="detailRow = row; detailVisible = true">详情</el-button>
           <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
@@ -195,6 +250,10 @@ onMounted(load)
         <el-descriptions-item label="ID">{{ detailRow.id }}</el-descriptions-item>
         <el-descriptions-item label="用户">{{ detailRow.user_name || '游客' }}</el-descriptions-item>
         <el-descriptions-item label="内容">{{ detailRow.content }}</el-descriptions-item>
+        <el-descriptions-item label="审核状态">{{ statusInfo(detailRow.status).label }}</el-descriptions-item>
+        <el-descriptions-item label="自动审核说明">{{ detailRow.moderation_reason || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="人工审核人">{{ detailRow.reviewed_by_name || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="人工审核时间">{{ formatDate(detailRow.reviewed_at) }}</el-descriptions-item>
         <el-descriptions-item label="点赞数">{{ detailRow.like_count }}</el-descriptions-item>
         <el-descriptions-item label="隐藏">
           <el-tag :type="detailRow.is_hidden ? 'danger' : 'success'" size="small">
@@ -236,6 +295,7 @@ onMounted(load)
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 16px; flex-wrap: wrap; }
 .page-header h2 { font-size: 1.3rem; white-space: nowrap; }
 .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.moderation-hint { margin-bottom: 16px; }
 
 .detail-btn {
   --el-button-bg-color: #e7a642;
