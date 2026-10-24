@@ -9,6 +9,7 @@ const recommended = ref([])
 const tags = ref([])
 const sphereRef = ref(null)
 const stageRef = ref(null)
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 const RADIUS = 100
 let tagEls = []
@@ -104,11 +105,11 @@ function updatePositions() {
 }
 
 function animate() {
-  if (autoRotate) {
+  if (autoRotate && !reducedMotion) {
     rotationY += 0.003
   }
   updatePositions()
-  animationId = requestAnimationFrame(animate)
+  if (!reducedMotion) animationId = requestAnimationFrame(animate)
 }
 
 function onMouseDown(e) {
@@ -127,12 +128,14 @@ function onMouseMove(e) {
   velocityY = dx * 0.005
   rotationX += velocityX
   rotationY += velocityY
+  if (reducedMotion) updatePositions()
   prevMouseX = e.clientX
   prevMouseY = e.clientY
 }
 
 function onMouseUp() {
   isDragging = false
+  if (reducedMotion) return
   inertiaTimer = setTimeout(() => {
     let vx = velocityX
     let vy = velocityY
@@ -156,6 +159,7 @@ function onWheel(e) {
   autoRotate = false
   clearTimeout(inertiaTimer)
   rotationY += e.deltaY * 0.005
+  if (reducedMotion) updatePositions()
   inertiaTimer = setTimeout(() => { autoRotate = true }, 1500)
 }
 
@@ -175,7 +179,7 @@ onMounted(async () => {
       // Wait for nextTick so stageRef is rendered
       await new Promise(r => setTimeout(r, 0))
       initSphere()
-      animationId = requestAnimationFrame(animate)
+      animate()
     }
   } catch {
     // silent
@@ -231,11 +235,10 @@ onUnmounted(() => {
 
 <style scoped>
 .side-panel {
-  flex: 0 0 260px;
-  width: 300px;
+  flex: 0 0 280px;
+  width: 280px;
   position: sticky;
-  top: 60px;           /* 距离视口顶部的距离，可调 */
-  z-index: 100;     /* 确保不被其他元素覆盖 */
+  top: calc(var(--navbar-height) + 24px);
 }
 
 .side-panel-inner {
@@ -244,10 +247,10 @@ onUnmounted(() => {
 }
 
 .panel-section {
-  height: 100%;
-  background: var(--color-surface);
-  border-radius: 12px;
-  padding: 18px;
+  border: 1px solid var(--color-border);
+  background: var(--floating-surface);
+  border-radius: var(--radius);
+  padding: 22px;
   margin-bottom: 16px;
   box-shadow: var(--shadow-card);
 }
@@ -282,8 +285,8 @@ onUnmounted(() => {
 }
 
 .rec-cover {
-  width: 48px;
-  height: 36px;
+  width: 64px;
+  height: 52px;
   border-radius: 4px;
   background-size: cover;
   background-position: center;
@@ -303,7 +306,9 @@ onUnmounted(() => {
   line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .rec-meta {

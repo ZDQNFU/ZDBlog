@@ -51,9 +51,10 @@ onUnmounted(() => clearTimeout(timer))
     </svg>
     <input
       :value="inputVal"
-      type="text"
+      type="search"
       class="search-input"
       placeholder="搜索文章..."
+      aria-label="搜索文章"
       @input="onInput"
       @keydown="onKeydown"
     />
@@ -83,9 +84,9 @@ onUnmounted(() => clearTimeout(timer))
 
 .search-input {
   width: 100%;
-  padding: 10px 36px 10px 36px;
+  padding: 13px 38px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 14px;
   background: var(--color-surface);
   color: var(--color-text);
   font-size: 0.9rem;
@@ -95,6 +96,7 @@ onUnmounted(() => clearTimeout(timer))
 .search-input::placeholder {
   color: var(--color-text-secondary);
 }
+.search-input::-webkit-search-cancel-button { -webkit-appearance: none; }
 .search-input:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);

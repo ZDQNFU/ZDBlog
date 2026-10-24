@@ -6,11 +6,6 @@ const links = ref([])
 const loading = ref(false)
 const error = ref('')
 
-function openLink(url) {
-  if (!url) return
-  window.open(url, '_blank')
-}
-
 function avatarLetter(name) {
   return name?.charAt(0)?.toUpperCase() || '?'
 }
@@ -32,6 +27,7 @@ onMounted(async () => {
 <template>
   <div class="resource-page">
     <div class="page-header">
+      <p class="section-eyebrow">我的互联网收藏夹</p>
       <h1>资源分享</h1>
       <p>收藏的一些优质网站与工具</p>
     </div>
@@ -49,12 +45,14 @@ onMounted(async () => {
     </div>
 
     <div v-else class="card-grid">
-      <div
+      <a
         v-for="link in links"
         :key="link.id"
         class="link-card"
         :style="{ borderTopColor: link.color || '#3b82f6' }"
-        @click="openLink(link.url)"
+        :href="link.url"
+        target="_blank"
+        rel="noopener noreferrer"
       >
         <div
           class="card-avatar"
@@ -82,7 +80,7 @@ onMounted(async () => {
         >
           {{ link.description }}
         </p>
-      </div>
+      </a>
     </div>
   </div>
 </template>

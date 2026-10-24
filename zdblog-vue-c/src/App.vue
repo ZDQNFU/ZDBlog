@@ -1,10 +1,11 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/composables/useTheme'
 import AuthModal from '@/components/AuthModal.vue'
 import SiteFooter from '@/components/SiteFooter.vue'
+import SiteBackdrop from '@/components/SiteBackdrop.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -18,6 +19,9 @@ const showChatTip = ref(false)
 const mobileMenuOpen = ref(false)
 
 const isChatPage = computed(() => route.path === '/chat')
+const isHeroHeader = computed(() => route.path === '/' && !scrolled.value)
+watch(() => route.path, () => { mobileMenuOpen.value = false })
+function onEscape(event) { if (event.key === 'Escape') mobileMenuOpen.value = false }
 
 const navItems = [
   { to: '/', label: '首页' },
@@ -64,6 +68,8 @@ function isActive(to) {
 
 onMounted(() => {
   window.addEventListener('scroll', onScroll, { passive: true })
+  window.addEventListener('keydown', onEscape)
+  onScroll()
   if (auth.isAuthenticated) {
     auth.refreshUser()
   }
@@ -71,24 +77,26 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('scroll', onScroll)
+  window.removeEventListener('keydown', onEscape)
 })
 </script>
 
 <template>
   <div class="app-shell">
-    <header v-if="!isChatPage" :class="['navbar', { 'navbar-scrolled': scrolled }]">
-      <button class="hamburger-btn" @click="mobileMenuOpen = !mobileMenuOpen" aria-label="菜单">
+    <SiteBackdrop />
+    <header v-if="!isChatPage" :class="['navbar', { 'navbar-scrolled': scrolled, 'navbar-hero': isHeroHeader }]">
+      <button class="hamburger-btn" @click="mobileMenuOpen = !mobileMenuOpen" aria-label="菜单" :aria-expanded="mobileMenuOpen" aria-controls="mobile-navigation">
         <span></span><span></span><span></span>
       </button>
 
       <router-link to="/" class="logo">ZDBlog</router-link>
 
-      <nav class="nav-links desktop-nav">
+      <nav class="nav-links desktop-nav" aria-label="主导航">
         <router-link to="/" class="nav-link">
           <svg width="16" height="16" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="#409eff" stroke="#409eff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="9 22 9 12 15 12 15 22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           首页
         </router-link>
-        <router-link to="/articles" class="nav-link">
+        <router-link to="/articles" class="nav-link" :class="{ 'nav-active': route.path.startsWith('/article') }">
           <svg width="16" height="16" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="#67c23a" stroke="#67c23a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="14 2 14 8 20 8" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="16" y1="13" x2="8" y2="13" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="17" x2="8" y2="17" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
           文章
         </router-link>
@@ -137,9 +145,10 @@ onUnmounted(() => {
     </Transition>
 
     <!-- Mobile sidebar (manual class toggle for reliability) -->
-    <aside :class="['mobile-sidebar', { 'sidebar-open': mobileMenuOpen }]">
+    <aside id="mobile-navigation" :class="['mobile-sidebar', { 'sidebar-open': mobileMenuOpen }]" :inert="!mobileMenuOpen" :aria-hidden="!mobileMenuOpen">
       <div class="mobile-sidebar-header">
         <span class="sidebar-logo">ZDBlog</span>
+        <button class="sidebar-close" @click="closeMobileMenu" aria-label="关闭菜单">×</button>
       </div>
       <nav class="mobile-nav">
         <router-link
@@ -218,7 +227,7 @@ onUnmounted(() => {
   bottom: 0;
   width: 240px;
   z-index: 1001;
-  background: #1d1e2c;
+  background: var(--color-surface);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -230,15 +239,17 @@ onUnmounted(() => {
 }
 
 .mobile-sidebar-header {
+  position: relative;
   padding: 20px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid var(--color-border);
   text-align: center;
 }
 .sidebar-logo {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-text);
 }
+.sidebar-close { position: absolute; right: 12px; top: 12px; width: 40px; height: 40px; font-size: 1.8rem; background: transparent; color: var(--color-text-secondary); border: none; cursor: pointer; }
 
 .mobile-nav {
   flex: 1;
@@ -251,7 +262,7 @@ onUnmounted(() => {
   gap: 10px;
   padding: 14px 24px;
   font-size: 0.95rem;
-  color: #aaa;
+  color: var(--color-text-secondary);
   text-decoration: none;
   transition: background 0.15s, color 0.15s;
 }
@@ -263,6 +274,7 @@ onUnmounted(() => {
 </style>
 
 <style scoped>
+.app-shell { position: relative; isolation: isolate; min-height: 100svh; }
 /* ---------- Navbar (glass morphism) ---------- */
 .navbar {
   position: fixed;
@@ -289,11 +301,11 @@ onUnmounted(() => {
 }
 
 .logo {
-  margin-left: 100px;
+  margin-left: max(24px, calc((100vw - 1232px) / 2));
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--color-primary);
+  color: var(--color-text);
   transition: color 0.35s;
   flex-shrink: 0;
 }
@@ -303,7 +315,7 @@ onUnmounted(() => {
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 24px;
+  gap: 8px;
 }
 
 /* ---------- Hamburger button ---------- */
@@ -334,7 +346,8 @@ onUnmounted(() => {
   font-size: 0.95rem;
   font-weight: 500;
   color: var(--color-text);
-  padding: 4px 0;
+  padding: 8px 14px;
+  border-radius: 999px;
   border-bottom: 2px solid transparent;
   transition: color 0.2s, border-color 0.25s;
   display: inline-flex;
@@ -342,8 +355,9 @@ onUnmounted(() => {
   gap: 6px;
 }
 .nav-link:hover,
-.nav-link.router-link-exact-active {
-  border-bottom-color: var(--color-primary);
+.nav-link.router-link-exact-active,
+.nav-link.nav-active {
+  background: color-mix(in srgb, var(--color-primary) 9%, transparent);
   color: var(--color-primary);
 }
 
@@ -371,7 +385,7 @@ onUnmounted(() => {
 /* ---------- Nav actions (auth) ---------- */
 .nav-actions {
   margin-left: auto;
-  margin-right: 100px;
+  margin-right: max(24px, calc((100vw - 1232px) / 2));
   display: flex;
   align-items: center;
   gap: 12px;
@@ -387,7 +401,7 @@ onUnmounted(() => {
 .nav-auth-btn {
   padding: 6px 18px;
   border: 1px solid var(--color-primary);
-  border-radius: 8px;
+  border-radius: 999px;
   background: transparent;
   color: var(--color-primary);
   font-size: 0.85rem;
@@ -505,4 +519,12 @@ onUnmounted(() => {
 @media (max-width: 480px) {
   .nav-user { display: none; }
 }
+.navbar { background: color-mix(in srgb, var(--color-surface) 90%, transparent); border-bottom-color: var(--color-border); }
+.navbar-hero { background: transparent; border-bottom-color: #ffffff25; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.navbar-hero .logo, .navbar-hero .nav-link, .navbar-hero .nav-user, .navbar-hero .theme-toggle-btn, .navbar-hero .nav-auth-btn { color: white; }
+.navbar-hero .nav-link:hover, .navbar-hero .nav-link.router-link-exact-active { background: #ffffff24; }
+.navbar-hero .theme-toggle-btn, .navbar-hero .nav-auth-btn { border-color: #ffffff70; }
+.navbar-hero .hamburger-btn span { background: white; }
+.nav-user { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (min-width: 861px) and (max-width: 1050px) { .nav-link { padding-left: 9px; padding-right: 9px; } .nav-link svg { display: none; } }
 </style>

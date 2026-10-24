@@ -193,6 +193,7 @@ onMounted(async () => {
       <ArticleTOC v-if="!locked" :toc="toc" />
 
       <article v-if="!locked" class="article-body">
+        <router-link to="/articles" class="back-to-articles">← 返回文章归档</router-link>
         <header class="article-header">
           <h1 class="article-title">{{ article.title }}</h1>
 
@@ -379,11 +380,14 @@ onMounted(async () => {
 }
 
 .article-body {
-  max-width: 1080px;
+  max-width: 960px;
+  min-width: 0;
   width: 100%;
-  padding: 0 40px;
-  border-left: 1px solid var(--color-border);
-  border-right: 1px solid var(--color-border);
+  padding: 40px 48px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 
 
@@ -395,21 +399,22 @@ onMounted(async () => {
   }
   .article-body {
     max-width: 100%;
-    padding: 0 16px;
-    border-left: none;
-    border-right: none;
+    padding: 28px;
   }
 }
 
 .article-header {
   margin-bottom: 32px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .article-title {
-  font-size: 1.8rem;
+  font-size: clamp(1.5rem, 2.6vw, 2.2rem);
   font-weight: 700;
   line-height: 1.35;
   margin-bottom: 14px;
+  overflow-wrap: anywhere;
 }
 
 .article-meta {
@@ -442,7 +447,7 @@ onMounted(async () => {
   gap: 4px;
   padding: 3px 12px;
   border-radius: 12px;
-  background: var(--color-bg);
+  background: var(--color-surface);
   font-size: 0.8rem;
   color: var(--color-text-secondary);
 }
@@ -503,15 +508,15 @@ onMounted(async () => {
 .md {
   /* padding: 5px; */
   border-radius: 15px;
-  background: var(--color-bg);
+  background: var(--color-surface);
 }
 
 /* 覆盖 md-editor-v3 内部预览区域的默认背景 */
 .article-content :deep(.md-editor-preview-wrapper) {
-  background: var(--color-bg) !important;
+  background: var(--color-surface) !important;
 }
 .article-content :deep(.md-editor-preview) {
-  background: var(--color-bg) !important;
+  background: var(--color-surface) !important;
 }
 
 /* 修复 md-editor-v3 代码块头部（"javascript 复制代码"）z-index 过高，
@@ -633,5 +638,21 @@ onMounted(async () => {
 .reply-btn:hover {
   color: var(--color-primary);
   background: rgba(59, 130, 246, 0.06);
+}
+.back-to-articles { display: inline-block; margin-bottom: 28px; font-size: .8rem; color: var(--color-text-secondary); }
+.back-to-articles:hover { color: var(--color-primary); }
+.article-content { overflow-wrap: anywhere; }
+.article-content :deep(.md-editor-preview-wrapper) { padding: 0; }
+.article-content :deep(.md-editor-preview) { font-size: 1rem; line-height: 1.9; }
+@media (max-width: 600px) {
+  .article-detail-page { padding-top: calc(var(--navbar-height) + 18px); }
+  .detail-layout { padding: 0 12px; }
+  .article-body { padding: 24px 18px; border-radius: 14px; }
+  .article-meta { gap: 10px; font-size: .75rem; }
+  .article-stats { gap: 10px; font-size: .75rem; }
+  .comment-header { gap: 8px; flex-wrap: wrap; }
+  .comment.reply { margin-left: 12px; }
+  .article-content :deep(h1) { font-size: 1.55rem; }
+  .article-content :deep(h2) { font-size: 1.3rem; }
 }
 </style>

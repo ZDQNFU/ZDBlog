@@ -94,7 +94,8 @@ onUnmounted(() => {
     <div class="articles-layout">
       <div class="articles-main">
         <header class="page-header">
-          <!-- <h1>文章</h1> -->
+          <p class="section-eyebrow">把想法写下来，让探索有迹可循</p>
+          <div class="section-heading"><h1>文章归档<span v-if="total" class="article-count">{{ total }} 篇文章</span></h1><router-link class="archive-link" to="/">返回首页 ↗</router-link></div>
         </header>
 
         <SearchBox v-model="searchQuery" @search="onSearch" />
@@ -108,6 +109,7 @@ onUnmounted(() => {
             v-for="(article, i) in articles"
             :key="article.id"
             :article="article"
+            :reverse-cut="i % 2 === 1"
             class="fade-up"
             :style="{ transitionDelay: i * 0.08 + 's' }"
           />
@@ -128,13 +130,13 @@ onUnmounted(() => {
 
 <style scoped>
 .article-list-page {
-  padding-top: calc(var(--navbar-height) + 32px);
+  padding-top: calc(var(--navbar-height) + 44px);
   padding-bottom: 48px;
 }
 
 .articles-layout {
   display: flex;
-  gap: 24px;
+  gap: 28px;
   align-items: flex-start;
 }
 
@@ -143,16 +145,17 @@ onUnmounted(() => {
   min-width: 0;
 }
 
+.page-header { padding: 22px 24px 0; margin-bottom: 20px; border-radius: 16px; background: var(--floating-surface); box-shadow: var(--shadow-card); overflow: hidden; }
 .page-header h1 {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: 700;
-  margin-bottom: 24px;
+  margin-bottom: 0;
 }
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
 }
 
 .state-text {
@@ -162,4 +165,9 @@ onUnmounted(() => {
   font-size: 0.95rem;
 }
 .error { color: #ef4444; }
+@media (max-width: 767px) {
+  .article-list-page { padding-top: calc(var(--navbar-height) + 28px); }
+  .card-grid { grid-template-columns: 1fr; gap: 18px; }
+  .page-header h1 { font-size: 1.4rem; }
+}
 </style>

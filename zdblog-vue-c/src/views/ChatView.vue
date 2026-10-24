@@ -402,11 +402,11 @@ onBeforeUnmount(() => {
   inset: 0;
   z-index: 50;
   display: flex;
-  background: var(--color-bg);
+  background: transparent;
   color: var(--color-text);
   color-scheme: light;
 
-  --wx-chat-bg: #ededed; /* 微信消息区的浅灰画布 */
+  --wx-chat-bg: rgba(237, 237, 237, .9);
   --wx-bubble-other: #ffffff; /* 对方（AI）气泡 */
   --wx-bubble-self: #95ec69; /* 自己气泡：微信绿 */
   --wx-bubble-self-text: #101010;
@@ -422,7 +422,7 @@ onBeforeUnmount(() => {
 }
 .chat-page.is-dark {
   color-scheme: dark;
-  --wx-chat-bg: #0f172a;
+  --wx-chat-bg: rgba(15, 23, 42, .9);
   --wx-bubble-other: #1e293b;
   --wx-bubble-self: #2f5f3e;
   --wx-bubble-self-text: #eaf5ec;

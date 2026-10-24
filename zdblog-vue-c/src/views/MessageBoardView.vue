@@ -182,7 +182,7 @@ onUnmounted(() => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--color-bg);
+  background: transparent;
   box-sizing: border-box;
   padding-top: var(--navbar-height);
 }

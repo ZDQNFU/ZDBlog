@@ -6,15 +6,9 @@ import Pagination from '@/components/Pagination.vue'
 import SearchBox from '@/components/SearchBox.vue'
 import SidePanel from '@/components/SidePanel.vue'
 
-const BREAKPOINT = 768
 const SIDEPANEL_BREAKPOINT = 1200
 
-const isWide = ref(window.innerWidth >= BREAKPOINT)
 const showSidePanel = ref(window.innerWidth >= SIDEPANEL_BREAKPOINT)
-const mediaSrc = ref(isWide.value ? '/img/咕咕嘎嘎.mp4' : '/img/咕咕嘎嘎.png')
-const videoKey = ref(0)
-const showVideo = ref(isWide.value)
-const showImage = ref(!isWide.value)
 
 const articles = ref([])
 const total = ref(0)
@@ -33,6 +27,10 @@ const subtitleChars = ref('')
 let typewriterTimer = null
 
 function startTypewriter() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    subtitleChars.value = subtitleText
+    return
+  }
   let i = 0
   subtitleChars.value = ''
   typewriterTimer = setInterval(() => {
@@ -49,20 +47,6 @@ function startTypewriter() {
 let observer = null
 
 function onResize() {
-  const wide = window.innerWidth >= BREAKPOINT
-  if (wide !== isWide.value) {
-    isWide.value = wide
-    if (wide) {
-      videoKey.value++
-      mediaSrc.value = '/img/咕咕嘎嘎.mp4'
-      showVideo.value = true
-      showImage.value = false
-    } else {
-      mediaSrc.value = '/img/咕咕嘎嘎.png'
-      showVideo.value = false
-      showImage.value = true
-    }
-  }
   showSidePanel.value = window.innerWidth >= SIDEPANEL_BREAKPOINT
 }
 
@@ -137,34 +121,21 @@ onUnmounted(() => {
   <div class="home">
     <!-- Hero -->
     <section class="hero">
-      <div class="hero-media">
-        <video
-          v-if="showVideo"
-          :key="'v' + videoKey"
-          :src="mediaSrc"
-          class="hero-video"
-          autoplay
-          muted
-          loop
-          playsinline
-        ></video>
-        <img
-          v-show="showImage"
-          :src="mediaSrc"
-          alt="hero background"
-          class="hero-img"
-        />
-      </div>
-      <div class="hero-overlay">
-        <h1 class="hero-title">ZDBlog</h1>
+      <div class="hero-overlay container-wide">
+        <p class="hero-eyebrow">ZD 的个人博客</p>
+        <h1 class="hero-title">在这里，<br />记录每一份<span>探索。</span></h1>
         <p class="hero-subtitle">
           {{ subtitleChars }}
           <span class="cursor" :class="{ blink: subtitleChars.length === subtitleText.length }">|</span>
         </p>
+        <div class="hero-actions">
+          <button class="hero-primary" @click="scrollToArticles">开始阅读 <span aria-hidden="true">↗</span></button>
+          <router-link to="/message-board" class="hero-secondary">留下足迹 <span aria-hidden="true">→</span></router-link>
+        </div>
       </div>
 
       <Transition name="fade">
-        <button v-show="scrollDownVisible" class="scroll-indicator" @click="scrollToArticles">
+        <button v-show="scrollDownVisible" class="scroll-indicator" @click="scrollToArticles" aria-label="浏览最新文章">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
       </Transition>
@@ -172,6 +143,10 @@ onUnmounted(() => {
 
     <!-- Article list section -->
     <section ref="articleSection" class="articles-section container-wide">
+      <div class="section-heading">
+        <div><p class="section-eyebrow">文字里的小世界</p><h2>最近更新<span v-if="total" class="article-count">{{ total }} 篇文章</span></h2></div>
+        <router-link class="archive-link" to="/articles">全部文章 ↗</router-link>
+      </div>
       <div class="articles-layout">
         <div class="articles-main">
           <SearchBox v-model="searchQuery" @search="onSearch" />
@@ -180,11 +155,12 @@ onUnmounted(() => {
           <div v-else-if="error" class="state-text error">{{ error }}</div>
           <div v-else-if="!articles.length" class="state-text">暂无文章</div>
 
-          <div v-else :class="['card-grid', { 'card-grid-2col': isWide }]">
+          <div v-else class="card-grid">
             <ArticleCard
               v-for="(article, i) in articles"
               :key="article.id"
               :article="article"
+              :reverse-cut="i % 2 === 1"
               class="fade-up"
               :style="{ transitionDelay: i * 0.08 + 's' }"
             />
@@ -209,71 +185,36 @@ onUnmounted(() => {
 .hero {
   position: relative;
   width: 100%;
-  height: 100vh;
-  min-height: 500px;
+  height: 100svh;
+  min-height: 560px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.hero::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 30%;
-  background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.25) 80%, var(--color-bg) 100%);
-  z-index: 1;
-  pointer-events: none;
-}
 
 .hero-overlay {
   position: relative;
-  z-index: 1;
-  text-align: center;
+  z-index: 2;
+  width: 100%;
+  text-align: left;
   color: #fff;
   text-shadow: 0 2px 12px rgba(0,0,0,0.5);
-  pointer-events: none;
-  transform: translateY(-20%);
-}
-
-.hero-media {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-}
-
-.hero-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  animation: mediaIn 0.5s ease-out;
-}
-
-.hero-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  animation: mediaIn 0.5s ease-out;
-}
-
-@keyframes mediaIn {
-  from { opacity: 0.4; }
-  to { opacity: 1; }
+  padding-top: var(--navbar-height);
+  padding-bottom: 30px;
 }
 
 .hero-title {
-  font-size: clamp(2.4rem, 6vw, 4.2rem);
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  margin-bottom: 0.3em;
+  font-size: clamp(2.8rem, 4.6vw, 4.4rem);
+  font-weight: 750;
+  letter-spacing: .025em;
+  line-height: 1.3;
+  margin-bottom: 24px;
 }
 
 .hero-subtitle {
-  font-family: 'STKaiti', 'KaiTi', '楷体', 'Noto Serif SC', serif;
-  font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+  font-size: 1.05rem;
   opacity: 0.92;
   letter-spacing: 0.08em;
 }
@@ -296,13 +237,13 @@ onUnmounted(() => {
   bottom: 28px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1;
+  z-index: 2;
   background: rgba(255,255,255,0.2);
   backdrop-filter: blur(6px);
   border: 1px solid rgba(255,255,255,0.3);
   border-radius: 50%;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -329,17 +270,16 @@ onUnmounted(() => {
 
 /* ---------- Article section ---------- */
 .articles-section {
+  scroll-margin-top: calc(var(--navbar-height) + 20px);
   position: relative;
   z-index: 2;
-  /* margin-top: -60px; */
-  padding-top: 60px;
+  padding-top: 44px;
   padding-bottom: 64px;
-  background: linear-gradient(to bottom, transparent 0%, var(--color-bg) 60px);
 }
 
 .articles-layout {
   display: flex;
-  gap: 24px;
+  gap: 28px;
   align-items: flex-start;
 }
 
@@ -350,13 +290,10 @@ onUnmounted(() => {
 
 .card-grid {
   display: grid;
-  gap: 20px;
+  gap: 24px;
   grid-template-columns: 1fr;
 }
 
-.card-grid-2col {
-  grid-template-columns: repeat(2, 1fr);
-}
 
 .state-text {
   text-align: center;
@@ -365,4 +302,23 @@ onUnmounted(() => {
   font-size: 0.95rem;
 }
 .error { color: #ef4444; }
+.section-heading { padding: 20px 24px; border-radius: 16px; background: var(--floating-surface); box-shadow: var(--shadow-card); }
+.hero-title span { color: #f9dc92; }
+.hero-eyebrow { font-size: .85rem; font-weight: 600; letter-spacing: .18em; margin-bottom: 24px; }
+.hero-actions { display: flex; gap: 28px; align-items: center; margin-top: 32px; font-size: .9rem; text-shadow: none; }
+.hero-primary { border: none; border-radius: 999px; padding: 13px 23px; background: white; color: #254351; font: inherit; font-weight: 650; cursor: pointer; transition: transform .2s; }
+.hero-primary:hover { transform: translateY(-3px); }
+.hero-primary span { margin-left: 20px; }
+.hero-secondary { padding: 12px 0; border-bottom: 1px solid #ffffff70; }
+.hero-secondary span { margin-left: 12px; }
+@media (max-width: 767px) {
+  .hero { height: 100svh; min-height: 550px; }
+  .hero-overlay { padding-left: 26px; padding-bottom: clamp(190px, 32svh, 270px); }
+  .hero-title { font-size: clamp(2rem, 9.8vw, 3.5rem); margin-bottom: 18px; }
+  .hero-eyebrow { margin-bottom: 18px; font-size: .75rem; }
+  .hero-subtitle { font-size: .9rem; }
+  .hero-actions { margin-top: 24px; gap: 22px; font-size: .83rem; }
+  .articles-section { padding-top: 30px; padding-bottom: 36px; scroll-margin-top: var(--navbar-height); }
+}
+@media (max-width: 1100px) { .side-panel { display: none; } }
 </style>

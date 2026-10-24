@@ -72,7 +72,10 @@ onUnmounted(() => { if (observer) observer.disconnect() })
   align-self: flex-start;
   max-height: calc(100vh - var(--navbar-height) - 64px);
   overflow-y: auto;
-  padding-right: 16px;
+  padding: 22px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
 }
 
 .toc-title {
