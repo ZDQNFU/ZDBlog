@@ -11,7 +11,9 @@ async function request(url, options = {}) {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     const msg = body.detail || Object.values(body).flat().join('; ') || `请求失败: ${res.status}`
-    throw new Error(msg)
+    const error = new Error(msg)
+    error.status = res.status
+    throw error
   }
   return res.status === 204 ? null : res.json()
 }
@@ -204,6 +206,21 @@ export function likeMessage(id) {
 
 export function unlikeMessage(id) {
   return request(`${MESSAGE_BASE}/${id}/like/`, { method: 'DELETE' })
+}
+
+// ==================== Moments ====================
+const MOMENTS_BASE = '/api/moments/c'
+
+export function fetchMoments(page = 1, pageSize = 10) {
+  return request(`${MOMENTS_BASE}/list/?page=${page}&page_size=${pageSize}`, { credentials: 'same-origin' })
+}
+
+export function likeMoment(id) {
+  return request(`${MOMENTS_BASE}/${id}/like/`, { method: 'POST', credentials: 'same-origin' })
+}
+
+export function unlikeMoment(id) {
+  return request(`${MOMENTS_BASE}/${id}/like/`, { method: 'DELETE', credentials: 'same-origin' })
 }
 
 // ==================== Links ====================

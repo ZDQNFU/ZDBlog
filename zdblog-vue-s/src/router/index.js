@@ -86,6 +86,12 @@ const router = createRouter({
       meta: { requiresAuth: true, layout: 'admin' },
     },
     {
+      path: '/moments',
+      name: 'moments',
+      component: () => import('@/views/MomentManageView.vue'),
+      meta: { requiresAuth: true, layout: 'admin' },
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('@/views/SystemConfigView.vue'),

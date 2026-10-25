@@ -30,6 +30,11 @@ const router = createRouter({
       component: () => import('@/views/ResourceView.vue'),
     },
     {
+      path: '/moments',
+      name: 'moments',
+      component: () => import('@/views/MomentsView.vue'),
+    },
+    {
       path: '/message-board',
       name: 'message-board',
       component: () => import('@/views/MessageBoardView.vue'),

@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'link',       # 资源链接应用
     'chat_robot', # 聊天机器人应用
     'message',    # 留言板应用
+    'moment',     # 站主短文字动态
     'system_config',  # 系统配置
 ]
 

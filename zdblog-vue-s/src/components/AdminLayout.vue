@@ -27,6 +27,7 @@ const baseMenuItems = [
   { path: '/categories', icon: 'Folder', label: '分类管理' },
   { path: '/comments', icon: 'ChatLineSquare', label: '评论管理' },
   { path: '/messages', icon: 'ChatLineRound', label: '留言管理' },
+  { path: '/moments', icon: 'EditPen', label: '动态管理' },
   { path: '/links', icon: 'Link', label: '资源管理' },
   {
     path: '/chats',

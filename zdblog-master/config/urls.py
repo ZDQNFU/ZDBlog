@@ -47,6 +47,7 @@ urlpatterns = [
         'api/messages/',
         include('message.urls')
     ),
+    path('api/moments/', include('moment.urls')),
     path(
         'api/system-config/',
         include('system_config.urls')
