@@ -380,9 +380,10 @@ onMounted(async () => {
 }
 
 .article-body {
-  max-width: 960px;
+  max-width: none;
   min-width: 0;
-  width: 100%;
+  width: 70vw;
+  flex-shrink: 0;
   padding: 40px 48px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -399,6 +400,7 @@ onMounted(async () => {
   }
   .article-body {
     max-width: 100%;
+    width: 100%;
     padding: 28px;
   }
 }

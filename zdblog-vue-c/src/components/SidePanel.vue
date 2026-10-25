@@ -1,235 +1,63 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchRandomArticles, fetchTags } from '@/api'
 
 const router = useRouter()
-
 const recommended = ref([])
 const tags = ref([])
-const sphereRef = ref(null)
-const stageRef = ref(null)
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-const RADIUS = 100
-let tagEls = []
-let animationId = null
-let rotationX = 0
-
-function getContrastColor(hex) {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  // W3C relative luminance
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-  return luminance > 0.55 ? '#1f2937' : '#fff'
-}
-let rotationY = 0
-let autoRotate = true
-let isDragging = false
-let prevMouseX = 0
-let prevMouseY = 0
-let velocityX = 0
-let velocityY = 0
-let inertiaTimer = null
-
-// Pre-computed positions on the sphere (normalized)
-let spherePoints = []
-
-function initSphere() {
-  if (!stageRef.value || !tags.value.length) return
-  stageRef.value.innerHTML = ''
-  tagEls = []
-  spherePoints = []
-
-  const n = tags.value.length
-  for (let i = 0; i < n; i++) {
-    const phi = Math.acos(1 - 2 * (i + 0.5) / n)
-    const theta = Math.PI * (1 + Math.sqrt(5)) * i
-    spherePoints.push({
-      x: Math.sin(phi) * Math.cos(theta),
-      y: Math.sin(phi) * Math.sin(theta),
-      z: Math.cos(phi),
-      tag: tags.value[i],
-    })
-
-    const el = document.createElement('button')
-    el.className = 'tag-bubble'
-    el.textContent = tags.value[i].name
-    const c = tags.value[i].color || '#3b82f6'
-    el.style.setProperty('--tag-color', c)
-    el.style.background = c
-    el.style.color = getContrastColor(c)
-    el.addEventListener('click', () => goTag(tags.value[i]))
-    stageRef.value.appendChild(el)
-    tagEls.push(el)
-  }
-}
-
-function updatePositions() {
-  const cosX = Math.cos(rotationX)
-  const sinX = Math.sin(rotationX)
-  const cosY = Math.cos(rotationY)
-  const sinY = Math.sin(rotationY)
-  const perspective = 600
-  const cx = stageRef.value.clientWidth / 2
-  const cy = stageRef.value.clientHeight / 2
-
-  for (let i = 0; i < spherePoints.length; i++) {
-    const sp = spherePoints[i]
-    const el = tagEls[i]
-    if (!el) continue
-
-    // Scale to radius
-    let x = sp.x * RADIUS
-    let y = sp.y * RADIUS
-    let z = sp.z * RADIUS
-
-    // Rotate around Y axis
-    let rx = x * cosY - z * sinY
-    let rz = x * sinY + z * cosY
-    // Rotate around X axis
-    let ry = y * cosX - rz * sinX
-    rz = y * sinX + rz * cosX
-
-    const scale = perspective / (perspective + rz)
-    const left = cx + rx * scale
-    const top = cy + ry * scale
-    const zIndex = Math.round(scale * 100)
-    const opacity = 0.4 + scale * 0.6
-
-    el.style.transform = `translate3d(${left - el.offsetWidth / 2}px, ${top - el.offsetHeight / 2}px, 0) scale(${scale})`
-    el.style.zIndex = zIndex
-    el.style.opacity = opacity
-  }
-}
-
-function animate() {
-  if (autoRotate && !reducedMotion) {
-    rotationY += 0.003
-  }
-  updatePositions()
-  if (!reducedMotion) animationId = requestAnimationFrame(animate)
-}
-
-function onMouseDown(e) {
-  isDragging = true
-  autoRotate = false
-  prevMouseX = e.clientX
-  prevMouseY = e.clientY
-  clearTimeout(inertiaTimer)
-}
-
-function onMouseMove(e) {
-  if (!isDragging) return
-  const dx = e.clientX - prevMouseX
-  const dy = e.clientY - prevMouseY
-  velocityX = dy * 0.005
-  velocityY = dx * 0.005
-  rotationX += velocityX
-  rotationY += velocityY
-  if (reducedMotion) updatePositions()
-  prevMouseX = e.clientX
-  prevMouseY = e.clientY
-}
-
-function onMouseUp() {
-  isDragging = false
-  if (reducedMotion) return
-  inertiaTimer = setTimeout(() => {
-    let vx = velocityX
-    let vy = velocityY
-    function decelerate() {
-      vx *= 0.95
-      vy *= 0.95
-      if (Math.abs(vx) < 0.0005 && Math.abs(vy) < 0.0005) {
-        autoRotate = true
-        return
-      }
-      rotationX += vx
-      rotationY += vy
-      requestAnimationFrame(decelerate)
-    }
-    decelerate()
-  }, 50)
-}
-
-function onWheel(e) {
-  e.preventDefault()
-  autoRotate = false
-  clearTimeout(inertiaTimer)
-  rotationY += e.deltaY * 0.005
-  if (reducedMotion) updatePositions()
-  inertiaTimer = setTimeout(() => { autoRotate = true }, 1500)
-}
+const countFormatter = new Intl.NumberFormat('zh-CN', { notation: 'compact', maximumFractionDigits: 1 })
 
 function goTag(tag) {
   router.push({ path: '/articles', query: { search: tag.name } })
 }
 
 onMounted(async () => {
-  try {
-    const [recRes, tagRes] = await Promise.all([
-      fetchRandomArticles().catch(() => []),
-      fetchTags().catch(() => []),
-    ])
-    recommended.value = Array.isArray(recRes) ? recRes.slice(0, 3) : (recRes.results || []).slice(0, 3)
-    tags.value = Array.isArray(tagRes) ? tagRes : (tagRes.results || [])
-    if (tags.value.length) {
-      // Wait for nextTick so stageRef is rendered
-      await new Promise(r => setTimeout(r, 0))
-      initSphere()
-      animate()
-    }
-  } catch {
-    // silent
-  }
-})
-
-onUnmounted(() => {
-  if (animationId) cancelAnimationFrame(animationId)
-  clearTimeout(inertiaTimer)
+  const [recRes, tagRes] = await Promise.all([
+    fetchRandomArticles().catch(() => []),
+    fetchTags().catch(() => []),
+  ])
+  recommended.value = (Array.isArray(recRes) ? recRes : (recRes.results || [])).slice(0, 3)
+  tags.value = Array.isArray(tagRes) ? tagRes : (tagRes.results || [])
 })
 </script>
 
 <template>
-  <aside class="side-panel">
-    <div class="side-panel-inner">
-      <!-- Recommended articles -->
-      <div v-if="recommended.length" class="panel-section">
-        <h4 class="panel-title">推荐文章</h4>
-        <div class="rec-list">
-          <router-link
-            v-for="item in recommended"
-            :key="item.id"
-            :to="`/article/${item.id}`"
-            class="rec-item"
-          >
-            <div v-if="item.cover" class="rec-cover" :style="{ backgroundImage: `url(${item.cover})` }"></div>
-            <div class="rec-body">
-              <span class="rec-title">{{ item.title }}</span>
-              <span class="rec-meta">{{ item.view_count || 0 }} 阅读</span>
-            </div>
-          </router-link>
-        </div>
+  <aside class="side-panel" aria-label="文章探索">
+    <section v-if="recommended.length" class="panel-section" aria-labelledby="recommended-heading">
+      <header class="panel-header">
+        <h2 id="recommended-heading" class="panel-title">推荐文章</h2>
+        <span class="panel-count">{{ recommended.length }} 篇</span>
+      </header>
+      <div class="rec-list">
+        <router-link v-for="(item, index) in recommended" :key="item.id" :to="`/article/${item.id}`" class="rec-item">
+          <div class="rec-cover" :class="{ 'rec-cover-empty': !item.cover }" aria-hidden="true">
+            <img v-if="item.cover" :src="item.cover" alt="" loading="lazy" decoding="async" />
+            <span v-else>{{ String(index + 1).padStart(2, '0') }}</span>
+          </div>
+          <div class="rec-body">
+            <span class="rec-title">{{ item.title }}</span>
+            <span class="rec-meta">
+              <span v-if="item.category?.name" class="rec-category">{{ item.category.name }}</span>
+              <span>{{ countFormatter.format(item.view_count || 0) }} 阅读</span>
+            </span>
+          </div>
+        </router-link>
       </div>
+    </section>
 
-      <!-- Tag sphere -->
-      <div v-if="tags.length" class="panel-section">
-        <h4 class="panel-title">标签云</h4>
-        <div
-          ref="sphereRef"
-          class="tag-sphere"
-          @mousedown.prevent="onMouseDown"
-          @mousemove="onMouseMove"
-          @mouseup="onMouseUp"
-          @mouseleave="onMouseUp"
-          @wheel.prevent="onWheel"
-        >
-          <div ref="stageRef" class="sphere-stage"></div>
-        </div>
+    <section v-if="tags.length" class="panel-section" aria-labelledby="tags-heading">
+      <header class="panel-header">
+        <h2 id="tags-heading" class="panel-title">标签云</h2>
+        <span class="panel-count">{{ tags.length }} 个</span>
+      </header>
+      <div class="tag-cloud">
+        <button v-for="tag in tags" :key="tag.id" type="button" class="tag-link"
+          :style="{ '--tag-color': tag.color || 'var(--color-primary)' }" :title="tag.name" @click="goTag(tag)">
+          <span class="tag-hash" aria-hidden="true">#</span><span class="tag-name">{{ tag.name }}</span>
+        </button>
       </div>
-    </div>
+    </section>
   </aside>
 </template>
 
@@ -239,118 +67,39 @@ onUnmounted(() => {
   width: 280px;
   position: sticky;
   top: calc(var(--navbar-height) + 24px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
-
-.side-panel-inner {
-  position: sticky;
-  top: calc(var(--navbar-height) + 20px);
-}
-
 .panel-section {
+  padding: 18px;
   border: 1px solid var(--color-border);
+  border-radius: 16px;
   background: var(--floating-surface);
-  border-radius: var(--radius);
-  padding: 22px;
-  margin-bottom: 16px;
   box-shadow: var(--shadow-card);
 }
-
-.panel-title {
-  font-size: 0.88rem;
-  font-weight: 700;
-  margin-bottom: 14px;
-  color: var(--color-text);
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-/* ---- Recommended ---- */
-.rec-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.rec-item {
-  display: flex;
-  gap: 10px;
-  text-decoration: none;
-  color: var(--color-text);
-  border-radius: 8px;
-  padding: 4px;
-  transition: background 0.2s;
-}
-.rec-item:hover {
-  background: var(--color-bg);
-}
-
-.rec-cover {
-  width: 64px;
-  height: 52px;
-  border-radius: 4px;
-  background-size: cover;
-  background-position: center;
-  flex-shrink: 0;
-}
-
-.rec-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.rec-title {
-  font-size: 0.82rem;
-  font-weight: 500;
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.rec-meta {
-  font-size: 0.72rem;
-  color: var(--color-text-secondary);
-}
-
-/* ---- Tag sphere ---- */
-.tag-sphere {
-  width: 100%;
-  height: 260px;
-  cursor: grab;
-  user-select: none;
-  -webkit-user-select: none;
-  overflow: hidden;
-}
-.tag-sphere:active {
-  cursor: grabbing;
-}
-
-.sphere-stage {
-  position: relative;
-  width: 100%;
-  height: 90%;
-}
-
-:deep(.tag-bubble) {
-  position: absolute;
-  top: 0;
-  left: 0;
-  padding: 4px 10px;
-  border-radius: 14px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-  will-change: transform, opacity;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
-  border: none;
-}
-:deep(.tag-bubble:hover) {
-  filter: brightness(1.1);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.22);
-}
+.panel-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.panel-title { display: flex; align-items: center; gap: 8px; font-size: .88rem; line-height: 1.5; font-weight: 650; color: var(--color-text); }
+.panel-title::before { content: ''; width: 3px; height: 13px; border-radius: 2px; background: var(--color-primary); }
+.panel-count { font-size: .67rem; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.rec-list { display: flex; flex-direction: column; }
+.rec-item { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 11px 0; border-bottom: 1px solid var(--color-border); color: var(--color-text); }
+.rec-item:first-child { padding-top: 0; }
+.rec-item:last-child { padding-bottom: 0; border-bottom: 0; }
+.rec-cover { width: 58px; height: 52px; flex-shrink: 0; overflow: hidden; border-radius: 8px; background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface)); }
+.rec-cover img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .3s; }
+.rec-cover-empty { display: grid; place-items: center; color: var(--color-primary); font-size: 1.15rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.rec-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.rec-title { font-size: .81rem; font-weight: 550; line-height: 1.5; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; transition: color .2s; }
+.rec-item:hover .rec-title { color: var(--color-primary); }
+.rec-item:hover img { transform: scale(1.06); }
+.rec-meta { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--color-text-secondary); font-size: .65rem; line-height: 1.4; }
+.rec-meta > span { white-space: nowrap; }
+.rec-category { max-width: 70px; overflow: hidden; text-overflow: ellipsis; }
+.rec-category::after { content: '·'; margin-left: 8px; opacity: .6; }
+.tag-cloud { display: flex; flex-wrap: wrap; gap: 7px; }
+.tag-link { display: inline-flex; align-items: center; gap: 5px; min-width: 0; max-width: 100%; padding: 5px 9px; border: 1px solid color-mix(in srgb, var(--tag-color) 16%, transparent); border-radius: 7px; background: color-mix(in srgb, var(--tag-color) 6%, transparent); color: var(--color-text); font: inherit; font-size: .74rem; line-height: 1.5; cursor: pointer; transition: background .2s, border-color .2s, color .2s; }
+.tag-hash { color: var(--tag-color); font-weight: 650; opacity: .8; }
+.tag-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tag-link:hover { background: color-mix(in srgb, var(--tag-color) 14%, transparent); border-color: color-mix(in srgb, var(--tag-color) 38%, transparent); color: var(--color-primary); }
 </style>
